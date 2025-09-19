@@ -1,0 +1,28 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+  <h2 class="text-xl font-bold mb-4">Leave Reports</h2>
+  <table class="w-full border-collapse border border-gray-300">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="border p-2">Employee</th>
+        <th class="border p-2">Leave Type</th>
+        <th class="border p-2">Used</th>
+        <th class="border p-2">Remaining</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+        <tr>
+          <td class="border p-2">{{ report.employee }}</td>
+          <td class="border p-2">{{ report.leave_type }}</td>
+          <td class="border p-2">{{ report.used }}</td>
+          <td class="border p-2">{{ report.remaining }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" class="border p-2 text-center text-gray-500">No reports available</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

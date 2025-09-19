@@ -1,0 +1,16 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+  <h2 class="text-xl font-bold mb-4">Define Leave Types</h2>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label class="block">Leave Type Name</label>
+      <input type="text" name="name" class="w-full p-2 border rounded">
+    </div>
+    <div>
+      <label class="block">Yearly Limit</label>
+      <input type="number" name="yearly_limit" class="w-full p-2 border rounded">
+    </div>
+    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Save</button>
+  </form>
+{% endblock %}

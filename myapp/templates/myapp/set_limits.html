@@ -1,0 +1,15 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+  <h2 class="text-xl font-bold mb-4">Set Yearly Leave Limits</h2>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    {% for leave in leaves %}
+      <div>
+        <label class="block">{{ leave.name }}</label>
+        <input type="number" name="limit_{{ leave.id }}" value="{{ leave.yearly_limit }}" class="w-full p-2 border rounded">
+      </div>
+    {% endfor %}
+    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Update</button>
+  </form>
+{% endblock %}
+

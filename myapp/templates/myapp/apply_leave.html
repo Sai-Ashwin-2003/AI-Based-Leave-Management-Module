@@ -1,0 +1,28 @@
+{% extends 'myapp/base_dashboard.html' %}
+{% block content %}
+  <h2 class="text-xl font-bold mb-4">Apply for Leave</h2>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+     <div>
+    <label class="block font-semibold mb-1">Leave Type</label>
+    <select name="leave_type" class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500" required>
+      {% for lt in leave_types %}
+        <option value="{{ lt.id }}">{{ lt.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+    <div>
+      <label>Start Date</label>
+      <input type="date" name="start_date" class="w-full p-2 border rounded">
+    </div>
+    <div>
+      <label>End Date</label>
+      <input type="date" name="end_date" class="w-full p-2 border rounded">
+    </div>
+    <div>
+      <label>Reason</label>
+      <textarea name="reason" class="w-full p-2 border rounded"></textarea>
+    </div>
+    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Submit</button>
+  </form>
+{% endblock %}

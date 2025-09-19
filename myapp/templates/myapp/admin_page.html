@@ -1,0 +1,34 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Pending Leave Requests</h2>
+<table class="w-full border-collapse border border-gray-300 bg-white shadow rounded-lg">
+  <thead class="bg-gray-200">
+    <tr>
+      <th class="border p-2">Employee</th>
+      <th class="border p-2">Leave Type</th>
+      <th class="border p-2">Dates</th>
+      <th class="border p-2">Reason</th>
+      <th class="border p-2">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for req in requests %}
+    <tr class="hover:bg-gray-100">
+      <td class="border p-2">{{ req.user.username }}</td>
+      <td class="border p-2">{{ req.leave_type }}</td>
+      <td class="border p-2">{{ req.start_date }} → {{ req.end_date }}</td>
+      <td class="border p-2">{{ req.reason }}</td>
+      <td class="border p-2 space-x-2">
+        <a href="{% url 'approve_leave' req.id %}" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</a>
+        <a href="{% url 'reject_leave' req.id %}" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="5" class="border p-2 text-center text-gray-500">No pending requests</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
