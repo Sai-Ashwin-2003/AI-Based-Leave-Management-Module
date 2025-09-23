@@ -1,9 +1,29 @@
 {% extends 'myapp/base_dashboard.html' %}
+
 {% block content %}
-<h2 class="text-xl font-bold mb-4">My Leave Balance</h2>
-<ul class="list-disc pl-6">
-  {% for leave_type, amount in balances.items %}
-    <li>{{ leave_type }}: {{ amount }}</li>
-  {% endfor %}
-</ul>
+<h2 class="text-2xl font-bold mb-6">Leave Balance</h2>
+<table class="w-full bg-white rounded shadow">
+    <thead>
+        <tr class="bg-gray-200">
+            <th class="p-3 text-left">Leave Type</th>
+            <th class="p-3 text-left">Used</th>
+            <th class="p-3 text-left">Remaining</th>
+            <th class="p-3 text-left">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for leave_type, bal in balances.items %}
+        <tr class="border-b">
+            <td class="p-3">{{ leave_type }}</td>
+            <td class="p-3">{{ bal.used }}</td>
+            <td class="p-3">{{ bal.remaining }}</td>
+            <td class="p-3">{{ bal.total }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="p-3 text-center text-gray-500">No leave types defined yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

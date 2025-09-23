@@ -4,18 +4,29 @@ from . import views
 urlpatterns = [
     path('', views.login_view, name='login'),
     path('accounts/login/', views.login_view),
+    path("logout/", views.logout_view, name="logout"),
 
+    # User routes
     path('user/', views.user_dashboard, name='user_dashboard'),
     path('apply-leave/', views.apply_leave, name='apply_leave'),
     path('view-requests/', views.view_requests, name='view_requests'),
     path('view-balance/', views.view_balance, name='view_balance'),
 
-
+    # Admin routes
     path("admin_page/", views.pending_requests, name="dashboard"),
     path("admin_page/approve-leave/<int:leave_id>/", views.approve_leave, name="approve_leave"),
     path("admin_page/reject-leave/<int:leave_id>/", views.reject_leave, name="reject_leave"),
-
     path("admin_page/define-leave/", views.define_leave, name="define_leave"),
     path("admin_page/set-limits/", views.set_leave_limits, name="set_limits"),
     path("admin_page/reports/", views.leave_reports, name="view_reports"),
+
+    # Manager routes
+    path('manager/', views.manager_dashboard, name='manager_dashboard'),
+    path('manager/apply/', views.manager_apply_leave, name='manager_apply_leave'),
+    path('manager/requests/', views.manager_view_requests, name='manager_view_requests'),
+    path('manager/reports/', views.manager_reports, name='manager_reports'),
+    path('manager/approve/<int:request_id>/', views.manager_approve_leave, name='manager_approve_leave'),
+    path('manager/reject/<int:request_id>/', views.manager_reject_leave, name='manager_reject_leave'),
+    path('manager/balance/', views.manager_leave_balance, name='manager_leave_balance'),
+
 ]

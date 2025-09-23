@@ -1,5 +1,16 @@
 {% extends 'myapp/base_dashboard.html' %}
 {% block content %}
+    {% if messages %}
+  <div id="messages-container" class="fixed top-4 right-4 z-50 space-y-2">
+    {% for message in messages %}
+      <div class="p-3 rounded shadow text-white
+                  {% if message.tags == 'error' %}bg-red-500{% elif message.tags == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %} animate-slide-in">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
   <h2 class="text-xl font-bold mb-4">Apply for Leave</h2>
   <form method="post" class="space-y-4">
     {% csrf_token %}
@@ -12,17 +23,63 @@
     </select>
   </div>
     <div>
-      <label>Start Date</label>
-      <input type="date" name="start_date" class="w-full p-2 border rounded">
-    </div>
-    <div>
-      <label>End Date</label>
-      <input type="date" name="end_date" class="w-full p-2 border rounded">
-    </div>
+  <label>Start Date</label>
+  <input type="text" id="start_date" name="start_date" class="w-full p-2 border rounded" placeholder="Select start date">
+</div>
+
+<div>
+  <label>End Date</label>
+  <input type="text" id="end_date" name="end_date" class="w-full p-2 border rounded" placeholder="Select end date">
+</div>
+
     <div>
       <label>Reason</label>
       <textarea name="reason" class="w-full p-2 border rounded"></textarea>
     </div>
     <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Submit</button>
   </form>
+
+
+<script>
+  setTimeout(() => {
+    const messages = document.getElementById('messages-container');
+    if (messages) {
+      messages.style.transition = "opacity 0.5s ease-out";
+      messages.style.opacity = "0";
+      // Remove from DOM after fade-out
+      setTimeout(() => messages.remove(), 500);
+    }
+  }, 7000); // 7 seconds
+</script>
+<script>
+  flatpickr("#start_date", {
+    altInput: true,       // shows a more friendly format
+    altFormat: "F j, Y",  // e.g., Sept 22, 2025
+    dateFormat: "Y-m-d",  // actual value sent in form
+    minDate: "today"      // prevent selecting past dates
+  });
+
+  flatpickr("#end_date", {
+    altInput: true,
+    altFormat: "F j, Y",
+    dateFormat: "Y-m-d",
+    minDate: "today"
+  });
+</script>
+
+
+<style>
+    // animation
+    @keyframes slide-in {
+    0% { transform: translateX(100px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out forwards;
+  }
+
+</style>
+
+
 {% endblock %}

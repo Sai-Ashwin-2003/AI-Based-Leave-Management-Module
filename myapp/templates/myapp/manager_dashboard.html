@@ -1,0 +1,35 @@
+{% extends "myapp/manager_base.html" %}
+
+{% block content %}
+  <h2 class="text-2xl font-bold mb-6">Pending Leave Requests</h2>
+
+  {% if pending_requests %}
+    <table class="w-full bg-white rounded shadow">
+      <thead>
+        <tr class="bg-gray-200">
+          <th class="p-3 text-left">Employee</th>
+          <th class="p-3 text-left">Leave Type</th>
+          <th class="p-3 text-left">Dates</th>
+          <th class="p-3 text-left">Reason</th>
+          <th class="p-3 text-left">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for leave in pending_requests %}
+<tr class="border-b">
+    <td class="p-3">{{ leave.user.username }}</td>
+    <td class="p-3">{{ leave.leave_type.name }}</td>
+    <td class="p-3">{{ leave.start_date }} → {{ leave.end_date }}</td>
+    <td class="p-3">{{ leave.reason }}</td>
+    <td class="p-3">
+        <a href="{% url 'manager_approve_leave' leave.id %}" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</a> |
+        <a href="{% url 'manager_reject_leave' leave.id %}" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
+    </td>
+</tr>
+{% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-gray-500">No pending requests.</p>
+  {% endif %}
+{% endblock %}

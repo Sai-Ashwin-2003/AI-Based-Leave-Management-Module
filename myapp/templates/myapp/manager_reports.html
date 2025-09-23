@@ -1,0 +1,40 @@
+{% extends "myapp/manager_base.html" %}
+
+{% block content %}
+  <h2 class="text-2xl font-bold mb-6">Employee Leave Reports</h2>
+
+<p>Logged in as: {{ request.user.username }} ({{ request.user.role }})</p>
+<table class="w-full bg-white rounded shadow">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="p-3 text-left">Employee</th>
+        <th class="p-3 text-left">Leave Type</th>
+        <th class="p-3 text-left">Used</th>
+        <th class="p-3 text-left">Remaining</th>
+          <th class="border p-2">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for emp in reports %}
+        {% for lt_name, bal in emp.balances.items %}
+            <tr>
+                {% if forloop.first %}
+                    <td class="border p-2" rowspan="{{ emp.balances|length }}">
+                        {{ emp.employee.username }}
+                    </td>
+                {% endif %}
+                <td class="border p-2">{{ lt_name }}</td>
+                <td class="border p-2">{{ bal.used }}</td>
+                <td class="border p-2">{{ bal.remaining }}</td>
+                <td class="border p-2">{{ bal.total }}</td>
+            </tr>
+        {% endfor %}
+      {% empty %}
+        <tr>
+          <td colspan="4" class="p-3 text-center text-gray-500">No report data available.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

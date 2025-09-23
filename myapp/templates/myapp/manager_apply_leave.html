@@ -1,0 +1,52 @@
+{% extends "myapp/manager_base.html" %}
+
+{% block content %}
+  <h2 class="text-2xl font-bold mb-6">Apply for Leave</h2>
+  <form method="POST" class="space-y-4 bg-white p-6 rounded shadow">
+    {% csrf_token %}
+    <div>
+      <label class="block font-semibold">Leave Type</label>
+      <select name="leave_type" class="w-full p-2 border rounded">
+        {% for leave in leave_types %}
+          <option value="{{ leave.id }}">{{ leave.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+  <label>Start Date</label>
+  <input type="text" id="start_date" name="start_date" class="w-full p-2 border rounded" placeholder="Select start date">
+</div>
+
+<div>
+  <label>End Date</label>
+  <input type="text" id="end_date" name="end_date" class="w-full p-2 border rounded" placeholder="Select end date">
+</div>
+
+    <div>
+      <label class="block font-semibold">Reason</label>
+      <textarea name="reason" rows="3" class="w-full p-2 border rounded"></textarea>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Submit Request
+    </button>
+  </form>
+
+<script>
+  flatpickr("#start_date", {
+    altInput: true,       // shows a more friendly format
+    altFormat: "F j, Y",  // e.g., Sept 22, 2025
+    dateFormat: "Y-m-d",  // actual value sent in form
+    minDate: "today"      // prevent selecting past dates
+  });
+
+  flatpickr("#end_date", {
+    altInput: true,
+    altFormat: "F j, Y",
+    dateFormat: "Y-m-d",
+    minDate: "today"
+  });
+</script>
+
+
+
+{% endblock %}

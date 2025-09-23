@@ -1,0 +1,29 @@
+{% extends "myapp/manager_base.html" %}
+
+{% block content %}
+  <h2 class="text-2xl font-bold mb-6">Your Leave Requests</h2>
+  <table class="w-full bg-white rounded shadow">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="p-3 text-left">Leave Type</th>
+        <th class="p-3 text-left">Dates</th>
+        <th class="p-3 text-left">Reason</th>
+        <th class="p-3 text-left">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for request in leave_requests %}
+        <tr class="border-b">
+          <td class="p-3">{{ request.leave_type.name }}</td>
+          <td class="p-3">{{ request.start_date }} → {{ request.end_date }}</td>
+          <td class="p-3">{{ request.reason }}</td>
+          <td class="p-3">{{ request.status }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" class="p-3 text-center text-gray-500">You have not applied for any leave yet.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
