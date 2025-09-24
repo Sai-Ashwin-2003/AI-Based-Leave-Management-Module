@@ -41,12 +41,16 @@ def login_view(request):
     return render(request, "myapp/login.html")
 
 
+
+
+
+# ---------------- LEAVE APPLICATION ---------------- #
+
+
 @login_required
 def user_dashboard(request):
     return render(request, "myapp/user_dashboard.html")
 
-
-# ---------------- LEAVE APPLICATION ---------------- #
 
 @login_required
 def apply_leave(request):
@@ -149,22 +153,43 @@ def review_leave_request(request, leave_id):
 @login_required
 def approve_leave(request, leave_id):
     leave = get_object_or_404(LeaveRequest, id=leave_id)
-    if leave.status != 'Approved':
-        leave.status = 'Approved'
+
+    if request.method == "POST":
+        review_reason = request.POST.get("reason", "")
+        leave.status = "Approved"
+        leave.reviewed_by = request.user
+        leave.review_reason = review_reason
         leave.save()
         calculate_leave_balance(leave.user, leave.leave_type)
-        messages.success(request, f"{leave.user.username}'s leave approved. Balance updated.")
-    else:
-        messages.info(request, "Leave is already approved.")
-    return redirect('dashboard')
+        messages.success(request, f"{leave.user.username}'s leave approved.")
+        return redirect("dashboard")
+
+    # GET request: show a form to enter reason
+    return render(request, "myapp/leave_review_form.html", {
+        "leave": leave,
+        "action": "Approve"
+    })
 
 
 @login_required
 def reject_leave(request, leave_id):
     leave = get_object_or_404(LeaveRequest, id=leave_id)
-    leave.status = 'Rejected'
-    leave.save()
-    return redirect('dashboard')
+
+    if request.method == "POST":
+        review_reason = request.POST.get("reason", "")
+        leave.status = "Rejected"
+        leave.reviewed_by = request.user
+        leave.review_reason = review_reason
+        leave.save()
+        messages.info(request, f"{leave.user.username}'s leave rejected.")
+        return redirect("dashboard")
+
+    # GET request: show a form to enter reason
+    return render(request, "myapp/leave_review_form.html", {
+        "leave": leave,
+        "action": "Reject"
+    })
+
 
 
 @login_required
@@ -243,6 +268,41 @@ def manager_dashboard(request):
 
     return render(request, "myapp/manager_dashboard.html", {"pending_requests": pending_requests})
 
+@login_required
+def manager_leave_request_detail(request, request_id):
+    leave = get_object_or_404(LeaveRequest, id=request_id, status="Pending")
+
+    # Employee’s previous requests of same leave type
+    previous_requests = LeaveRequest.objects.filter(
+        user=leave.user, leave_type=leave.leave_type
+    ).exclude(id=leave.id)
+
+    # Remaining balance
+    leave_balance = calculate_leave_balance(leave.user, leave.leave_type)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        review_reason = request.POST.get("review_reason")
+
+        leave.review_reason = review_reason
+        leave.reviewed_by = request.user
+
+        if action == "approve":
+            leave.status = "Approved"
+            leave.save()
+            calculate_leave_balance(leave.user, leave.leave_type)
+            messages.success(request, f"Leave approved for {leave.user.username}.")
+        elif action == "reject":
+            leave.status = "Rejected"
+            leave.save()
+            messages.error(request, f"Leave rejected for {leave.user.username}.")
+        return redirect("manager_dashboard")
+
+    return render(request, "myapp/manager_leave_request_detail.html", {
+        "leave": leave,
+        "previous_requests": previous_requests,
+        "leave_balance": leave_balance,
+    })
 
 @login_required
 def manager_apply_leave(request):

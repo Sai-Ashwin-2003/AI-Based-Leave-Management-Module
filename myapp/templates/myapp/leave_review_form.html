@@ -1,0 +1,20 @@
+{% extends "myapp/base_admin.html" %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">{{ action }} Leave for {{ leave.user.username }}</h2>
+
+<form method="POST">
+    {% csrf_token %}
+    <p>Leave Type: {{ leave.leave_type.name }}</p>
+    <p>Dates: {{ leave.start_date }} → {{ leave.end_date }}</p>
+    <p>Employee Reason: {{ leave.reason }}</p>
+
+    <div class="mb-4">
+        <label class="block font-semibold">Your Reason:</label>
+        <textarea name="reason" rows="3" class="w-full p-2 border rounded" required></textarea>
+    </div>
+
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+        {{ action }}
+    </button>
+</form>
+{% endblock %}

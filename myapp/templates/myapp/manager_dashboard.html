@@ -11,22 +11,24 @@
           <th class="p-3 text-left">Leave Type</th>
           <th class="p-3 text-left">Dates</th>
           <th class="p-3 text-left">Reason</th>
-          <th class="p-3 text-left">Actions</th>
+          <th class="p-3 text-left">Action</th>
         </tr>
       </thead>
       <tbody>
         {% for leave in pending_requests %}
-<tr class="border-b">
-    <td class="p-3">{{ leave.user.username }}</td>
-    <td class="p-3">{{ leave.leave_type.name }}</td>
-    <td class="p-3">{{ leave.start_date }} → {{ leave.end_date }}</td>
-    <td class="p-3">{{ leave.reason }}</td>
-    <td class="p-3">
-        <a href="{% url 'manager_approve_leave' leave.id %}" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</a> |
-        <a href="{% url 'manager_reject_leave' leave.id %}" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
-    </td>
-</tr>
-{% endfor %}
+        <tr class="border-b">
+          <td class="p-3">{{ leave.user.username }}</td>
+          <td class="p-3">{{ leave.leave_type.name }}</td>
+          <td class="p-3">{{ leave.start_date }} → {{ leave.end_date }}</td>
+          <td class="p-3">{{ leave.reason }}</td>
+          <td class="p-3">
+            <a href="{% url 'manager_leave_request_detail' leave.id %}"
+               class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+              Leave Request
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
       </tbody>
     </table>
   {% else %}

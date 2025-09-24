@@ -1,0 +1,34 @@
+{% extends "myapp/manager_base.html" %}
+{% block content %}
+  <h2 class="text-2xl font-bold mb-6">Review Leave Request</h2>
+
+  <div class="bg-white p-6 rounded shadow space-y-4">
+    <p><strong>Employee:</strong> {{ leave.user.username }}</p>
+    <p><strong>Leave Type:</strong> {{ leave.leave_type.name }}</p>
+    <p><strong>Dates:</strong> {{ leave.start_date }} → {{ leave.end_date }}</p>
+    <p><strong>Reason:</strong> {{ leave.reason }}</p>
+    <p><strong>Remaining {{ leave.leave_type.name }} Leave:</strong> {{ leave_balance.remaining }}</p>
+  </div>
+
+  <h3 class="text-lg font-semibold mt-6">Previous Requests (Same Leave Type)</h3>
+  <ul class="list-disc ml-6">
+    {% for req in previous_requests %}
+      <li>{{ req.start_date }} → {{ req.end_date }} ({{ req.status }})</li>
+    {% empty %}
+      <li>No previous requests for this leave type.</li>
+    {% endfor %}
+  </ul>
+
+  <form method="POST" class="mt-6 space-y-4 bg-white p-4 rounded shadow">
+    {% csrf_token %}
+    <label class="block font-semibold">Review Reason</label>
+    <textarea name="review_reason" rows="3" class="w-full p-2 border rounded" required></textarea>
+
+    <div class="flex space-x-4">
+      <button type="submit" name="action" value="approve"
+        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Approve</button>
+      <button type="submit" name="action" value="reject"
+        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
+    </div>
+  </form>
+{% endblock %}

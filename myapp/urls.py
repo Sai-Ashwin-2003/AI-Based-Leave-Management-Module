@@ -23,11 +23,10 @@ urlpatterns = [
 
     # Manager routes
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
+    path('manager/review-leave/<int:request_id>/', views.manager_leave_request_detail, name='manager_leave_request_detail'),
     path('manager/apply/', views.manager_apply_leave, name='manager_apply_leave'),
     path('manager/requests/', views.manager_view_requests, name='manager_view_requests'),
     path('manager/reports/', views.manager_reports, name='manager_reports'),
-    path('manager/approve/<int:request_id>/', views.manager_approve_leave, name='manager_approve_leave'),
-    path('manager/reject/<int:request_id>/', views.manager_reject_leave, name='manager_reject_leave'),
     path('manager/balance/', views.manager_leave_balance, name='manager_leave_balance'),
 
 ]
