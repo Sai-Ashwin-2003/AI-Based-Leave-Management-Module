@@ -12,7 +12,7 @@
 {% endif %}
 
   <h2 class="text-xl font-bold mb-4">Apply for Leave</h2>
-  <form method="post" class="space-y-4">
+  <form id="leaveForm" method="post" class="space-y-4">
     {% csrf_token %}
      <div>
     <label class="block font-semibold mb-1">Leave Type</label>
@@ -65,11 +65,29 @@
     dateFormat: "Y-m-d",
     minDate: "today"
   });
+
+
+
+  // Form validation
+  document.getElementById("leaveForm").addEventListener("submit", function(e) {
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
+
+    if (!startDate || !endDate) {
+      e.preventDefault(); // prevent form submission
+      alert("Please enter valid start and end dates.");
+      return false;
+    }
+
+    if (new Date(endDate) < new Date(startDate)) {
+      e.preventDefault();
+      alert("End date cannot be before start date.");
+      return false;
+    }
+  });
 </script>
 
-
 <style>
-    // animation
     @keyframes slide-in {
     0% { transform: translateX(100px); opacity: 0; }
     100% { transform: translateX(0); opacity: 1; }

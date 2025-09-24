@@ -1,0 +1,37 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">
+    Leave Report for {{ report.employee.username }} ({{ report.employee.role }})
+</h2>
+
+<table class="w-full border-collapse border border-gray-300">
+    <thead class="bg-gray-200">
+        <tr>
+            <th class="border p-2">Leave Type</th>
+            <th class="border p-2">Used</th>
+            <th class="border p-2">Remaining</th>
+            <th class="border p-2">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lt, data in report.balances.items %}
+            <tr>
+                <td class="border p-2">{{ lt }}</td>
+                <td class="border p-2">{{ data.used }}</td>
+                <td class="border p-2">{{ data.remaining }}</td>
+                <td class="border p-2">{{ data.total }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-gray-500 p-2">No leave data available</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="mt-4">
+    <a href="{% url 'list_users' report.employee.role %}" class="text-blue-600 hover:underline">
+        ← Back to {{ report.employee.role|title }} list
+    </a>
+</p>
+{% endblock %}

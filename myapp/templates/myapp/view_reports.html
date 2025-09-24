@@ -1,39 +1,8 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
-  <h2 class="text-xl font-bold mb-4">Leave Reports</h2>
-<p>Logged in as: {{ request.user.username }} ({{ request.user.role }})</p>
-  <table class="w-full border-collapse border border-gray-300">
-    <thead class="bg-gray-200">
-      <tr>
-        <th class="border p-2">Employee</th>
-        <th class="border p-2">Leave Type</th>
-        <th class="border p-2">Used</th>
-        <th class="border p-2">Remaining</th>
-          <th class="border p-2">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-       {% for report in reports %}
-        {% with report.balances.items as balances %}
-          {% for leave_type, data in balances %}
-            <tr>
-              {% if forloop.first %}
-                <td class="border p-2" rowspan="{{ balances|length }}">
-                  {{ report.employee.username }}
-                </td>
-              {% endif %}
-              <td class="border p-2">{{ leave_type }}</td>
-              <td class="border p-2">{{ data.used }}</td>
-              <td class="border p-2">{{ data.remaining }}</td>
-                <td class="border p-2">{{ data.total }}</td>
-            </tr>
-          {% endfor %}
-        {% endwith %}
-      {% empty %}
-        <tr>
-          <td colspan="4" class="border p-2 text-center text-gray-500">No reports available</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<h2 class="text-xl font-bold mb-4">Leave Reports</h2>
+<ul class="list-disc ml-6">
+    <li><a href="{% url 'list_users' 'manager' %}" class="text-blue-600 hover:underline">Managers</a></li>
+    <li><a href="{% url 'list_users' 'employee' %}" class="text-blue-600 hover:underline">Employees</a></li>
+</ul>
 {% endblock %}

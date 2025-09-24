@@ -160,21 +160,33 @@ def set_leave_limits(request):
     return render(request, "myapp/set_limits.html", {"leaves": leave_types})
 
 
+# Level 1: Show links for Managers and Employees
 @login_required
 def leave_reports(request):
+    return render(request, "myapp/view_reports.html")
+
+# Level 2: Show list of users by role
+@login_required
+def list_users(request, role):
+    if role not in ["manager", "employee"]:
+        return render(request, "myapp/view_reports.html")  # fallback if invalid role
+
+    users = CustomUser.objects.filter(is_superuser=False, role=role)
+    return render(request, "myapp/list_users.html", {"users": users, "role": role})
+
+# Level 3: Show detailed leave report for a single user
+@login_required
+def user_report(request, user_id):
+    user = get_object_or_404(CustomUser, id=user_id, is_superuser=False)
     leave_types = LeaveType.objects.all()
 
-    employees = CustomUser.objects.filter(is_superuser=False, role__in=["employee", "manager"])  # all non-admin users
+    report = {
+        "employee": user,
+        "balances": {lt.name: calculate_leave_balance(user, lt) for lt in leave_types},
+    }
 
-    report = []
-    for emp in employees:
-        emp_data = {
-            'employee': emp,
-            'balances': {lt.name: calculate_leave_balance(emp, lt) for lt in leave_types}
-        }
-        report.append(emp_data)
+    return render(request, "myapp/user_report.html", {"report": report})
 
-    return render(request, "myapp/view_reports.html", {"reports": report, "leave_types": leave_types})
 
 
 # ---------------- MANAGER VIEWS ---------------- #
