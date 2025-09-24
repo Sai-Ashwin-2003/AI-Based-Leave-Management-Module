@@ -1,0 +1,45 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Review Leave Request</h2>
+
+<div class="p-4 bg-white rounded shadow mb-6">
+  <p><strong>Employee:</strong> {{ leave.user.username }}</p>
+  <p><strong>Leave Type:</strong> {{ leave.leave_type.name }}</p>
+  <p><strong>Dates:</strong> {{ leave.start_date }} → {{ leave.end_date }}</p>
+  <p><strong>Reason:</strong> {{ leave.reason }}</p>
+</div>
+
+<div class="p-4 bg-gray-50 rounded shadow mb-6">
+  <h3 class="font-semibold mb-2">Previous Leaves ({{ leave.leave_type.name }})</h3>
+  {% if previous_leaves %}
+    <ul class="list-disc ml-6">
+      {% for prev in previous_leaves %}
+        <li>{{ prev.start_date }} → {{ prev.end_date }} ({{ prev.status }})</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No previous leaves of this type.</p>
+  {% endif %}
+</div>
+
+<div class="p-4 bg-gray-50 rounded shadow mb-6">
+  <p><strong>Remaining Leaves:</strong> {{ remaining_balance }}</p>
+</div>
+
+<form method="POST">
+  {% csrf_token %}
+  <div class="mb-4">
+    <label class="block font-semibold mb-1">Reason (for accept/reject)</label>
+    <textarea name="review_reason" class="w-full p-2 border rounded" required></textarea>
+  </div>
+
+  <button type="submit" name="action" value="accept"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+    Accept
+  </button>
+  <button type="submit" name="action" value="reject"
+          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+    Reject
+  </button>
+</form>
+{% endblock %}

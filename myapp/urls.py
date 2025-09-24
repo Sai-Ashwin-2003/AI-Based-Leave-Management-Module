@@ -14,8 +14,7 @@ urlpatterns = [
 
     # Admin routes
     path("admin_page/", views.pending_requests, name="dashboard"),
-    path("admin_page/approve-leave/<int:leave_id>/", views.approve_leave, name="approve_leave"),
-    path("admin_page/reject-leave/<int:leave_id>/", views.reject_leave, name="reject_leave"),
+    path("admin_page/review-leave/<int:leave_id>/", views.review_leave_request, name="review_leave_request"),
     path("admin_page/define-leave/", views.define_leave, name="define_leave"),
     path("admin_page/set-limits/", views.set_leave_limits, name="set_limits"),
     path("admin_page/reports/", views.leave_reports, name="view_reports"),

@@ -106,6 +106,45 @@ def pending_requests(request):
     requests = LeaveRequest.objects.filter(status='Pending').order_by('-applied_at')
     return render(request, "myapp/admin_page.html", {"requests": requests})
 
+@login_required
+def review_leave_request(request, leave_id):
+    leave = get_object_or_404(LeaveRequest, id=leave_id)
+
+    # previous leaves of same type
+    previous_leaves = LeaveRequest.objects.filter(
+        user=leave.user,
+        leave_type=leave.leave_type
+    ).exclude(id=leave.id)
+
+    # remaining balance
+    remaining_balance = calculate_leave_balance(leave.user, leave.leave_type)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        review_reason = request.POST.get("review_reason")
+
+        if not review_reason:
+            messages.error(request, "Please provide a reason.")
+            return redirect("review_leave_request", leave_id=leave.id)
+
+        if action == "accept":
+            leave.status = "Approved"
+        elif action == "reject":
+            leave.status = "Rejected"
+
+        leave.review_reason = review_reason
+        leave.reviewed_by = request.user
+        leave.save()
+
+        messages.success(request, f"Leave {action}ed successfully.")
+        return redirect("dashboard")
+
+    return render(request, "myapp/review_leave_request.html", {
+        "leave": leave,
+        "previous_leaves": previous_leaves,
+        "remaining_balance": remaining_balance,
+    })
+
 
 @login_required
 def approve_leave(request, leave_id):

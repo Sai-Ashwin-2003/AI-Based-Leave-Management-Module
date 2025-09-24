@@ -6,15 +6,39 @@
       <th class="p-2">Type</th>
       <th class="p-2">Dates</th>
       <th class="p-2">Status</th>
+      <th class="p-2">Reviewed By</th>
+      <th class="p-2">Decision Reason</th>
     </tr>
     {% for req in requests %}
     <tr>
       <td class="p-2">{{ req.leave_type.name }}</td>
       <td class="p-2">{{ req.start_date }} → {{ req.end_date }}</td>
-      <td class="p-2">{{ req.status }}</td>
+      <td class="p-2">
+        {% if req.status == "Approved" %}
+          <span class="text-gray-600">Approved</span>
+        {% elif req.status == "Rejected" %}
+          <span class="text-gray-600">Rejected</span>
+        {% else %}
+          <span class="text-gray-600">Pending</span>
+        {% endif %}
+      </td>
+      <td class="p-2">
+        {% if req.reviewed_by %}
+          {{ req.reviewed_by.get_full_name|default:req.reviewed_by.username }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td class="p-2">
+        {% if req.review_reason %}
+          {{ req.review_reason }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
     </tr>
     {% empty %}
-    <tr><td colspan="3" class="p-2 text-center">No leave requests yet</td></tr>
+    <tr><td colspan="5" class="p-2 text-center">No leave requests yet</td></tr>
     {% endfor %}
   </table>
 {% endblock %}

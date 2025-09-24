@@ -30,7 +30,7 @@ class LeaveType(models.Model):
 
 class LeaveRequest(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,   # ✅ instead of User
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
     leave_type = models.ForeignKey("LeaveType", on_delete=models.CASCADE)
@@ -44,8 +44,18 @@ class LeaveRequest(models.Model):
     )
     applied_at = models.DateTimeField(auto_now_add=True)
 
+    # NEW FIELDS
+    review_reason = models.TextField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="reviewed_leaves"
+    )
+
     def __str__(self):
         return f"{self.user.username} - {self.leave_type.name} ({self.status})"
+
 
 
 class LeaveBalance(models.Model):

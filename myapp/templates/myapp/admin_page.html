@@ -18,9 +18,11 @@
       <td class="border p-2">{{ req.leave_type }}</td>
       <td class="border p-2">{{ req.start_date }} → {{ req.end_date }}</td>
       <td class="border p-2">{{ req.reason }}</td>
-      <td class="border p-2 space-x-2">
-        <a href="{% url 'approve_leave' req.id %}" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</a>
-        <a href="{% url 'reject_leave' req.id %}" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
+      <td class="border p-2">
+        <a href="{% url 'review_leave_request' req.id %}"
+           class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          Leave Request
+        </a>
       </td>
     </tr>
     {% empty %}
@@ -30,5 +32,4 @@
     {% endfor %}
   </tbody>
 </table>
-
 {% endblock %}
