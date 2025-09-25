@@ -1,34 +1,76 @@
 {% extends "myapp/manager_base.html" %}
 {% block content %}
-  <h2 class="text-2xl font-bold mb-6">Review Leave Request</h2>
+<h2 class="text-2xl font-bold mb-6">Leave Request Details</h2>
 
-  <div class="bg-white p-6 rounded shadow space-y-4">
-    <p><strong>Employee:</strong> {{ leave.user.username }}</p>
-    <p><strong>Leave Type:</strong> {{ leave.leave_type.name }}</p>
-    <p><strong>Dates:</strong> {{ leave.start_date }} → {{ leave.end_date }}</p>
-    <p><strong>Reason:</strong> {{ leave.reason }}</p>
-    <p><strong>Remaining {{ leave.leave_type.name }} Leave:</strong> {{ leave_balance.remaining }}</p>
-  </div>
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Employee Info</h3>
+  <p><strong>Name:</strong> {{ leave.user.username }}</p>
+  <p><strong>Designation:</strong> {{ leave.user.designation|default:"Not Set" }}</p>
+  <p><strong>Manager:</strong>
+      {% if leave.user.manager %}
+        {{ leave.user.manager.username }}
+      {% elif projects %}
+        {% comment %}If the employee has projects, show lead of first project as manager{% endcomment %}
+        {{ projects.0.project.lead.username }}
+      {% else %}
+        None
+      {% endif %}
+  </p>
+</div>
 
-  <h3 class="text-lg font-semibold mt-6">Previous Requests (Same Leave Type)</h3>
-  <ul class="list-disc ml-6">
-    {% for req in previous_requests %}
-      <li>{{ req.start_date }} → {{ req.end_date }} ({{ req.status }})</li>
-    {% empty %}
-      <li>No previous requests for this leave type.</li>
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Leave Request</h3>
+  <p><strong>Type:</strong> {{ leave.leave_type.name }}</p>
+  <p><strong>Dates:</strong> {{ leave.start_date }} → {{ leave.end_date }}</p>
+  <p><strong>Reason:</strong> {{ leave.reason }}</p>
+  <p><strong>Status:</strong> {{ leave.status }}</p>
+</div>
+
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Projects</h3>
+  {% if projects %}
+  <table class="w-full border border-gray-300">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="border p-2">Project</th>
+        <th class="border p-2">Lead</th>
+        <th class="border p-2">Status</th>
+        <th class="border p-2">Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for member in projects %}
+      <tr>
+        <td class="border p-2">{{ member.project.name }}</td>
+        <td class="border p-2">{{ member.project.lead.username|default:"-" }}</td>
+        <td class="border p-2">{{ member.project.status }}</td>
+        <td class="border p-2">{{ member.role_in_project|default:"Member" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-gray-500">No projects assigned.</p>
+  {% endif %}
+</div>
+
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Leave Balances</h3>
+  {% if balances %}
+  <ul>
+    {% for bal in balances %}
+      <li>{{ bal.leave_type.name }}: {{ bal.remaining }} days remaining</li>
     {% endfor %}
   </ul>
+  {% else %}
+  <p class="text-gray-500">No leave balances available.</p>
+  {% endif %}
+</div>
 
-  <form method="POST" class="mt-6 space-y-4 bg-white p-4 rounded shadow">
-    {% csrf_token %}
-    <label class="block font-semibold">Review Reason</label>
-    <textarea name="review_reason" rows="3" class="w-full p-2 border rounded" required></textarea>
-
-    <div class="flex space-x-4">
-      <button type="submit" name="action" value="approve"
-        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Approve</button>
-      <button type="submit" name="action" value="reject"
-        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
-    </div>
-  </form>
+<div class="mt-4 flex gap-4">
+  <a href="{% url 'manager_approve_leave' leave.id %}"
+     class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Approve</a>
+  <a href="{% url 'manager_reject_leave' leave.id %}"
+     class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
+</div>
 {% endblock %}

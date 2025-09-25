@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
 
-from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser
+from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember
 from .utils import calculate_leave_balance
 
 User = get_user_model()  # Use CustomUser throughout
@@ -110,44 +110,44 @@ def pending_requests(request):
     requests = LeaveRequest.objects.filter(status='Pending').order_by('-applied_at')
     return render(request, "myapp/admin_page.html", {"requests": requests})
 
-@login_required
-def review_leave_request(request, leave_id):
-    leave = get_object_or_404(LeaveRequest, id=leave_id)
-
-    # previous leaves of same type
-    previous_leaves = LeaveRequest.objects.filter(
-        user=leave.user,
-        leave_type=leave.leave_type
-    ).exclude(id=leave.id)
-
-    # remaining balance
-    remaining_balance = calculate_leave_balance(leave.user, leave.leave_type)
-
-    if request.method == "POST":
-        action = request.POST.get("action")
-        review_reason = request.POST.get("review_reason")
-
-        if not review_reason:
-            messages.error(request, "Please provide a reason.")
-            return redirect("review_leave_request", leave_id=leave.id)
-
-        if action == "accept":
-            leave.status = "Approved"
-        elif action == "reject":
-            leave.status = "Rejected"
-
-        leave.review_reason = review_reason
-        leave.reviewed_by = request.user
-        leave.save()
-
-        messages.success(request, f"Leave {action}ed successfully.")
-        return redirect("dashboard")
-
-    return render(request, "myapp/review_leave_request.html", {
-        "leave": leave,
-        "previous_leaves": previous_leaves,
-        "remaining_balance": remaining_balance,
-    })
+# @login_required
+# def review_leave_request(request, leave_id):
+#     leave = get_object_or_404(LeaveRequest, id=leave_id)
+#
+#     # previous leaves of same type
+#     previous_leaves = LeaveRequest.objects.filter(
+#         user=leave.user,
+#         leave_type=leave.leave_type
+#     ).exclude(id=leave.id)
+#
+#     # remaining balance
+#     remaining_balance = calculate_leave_balance(leave.user, leave.leave_type)
+#
+#     if request.method == "POST":
+#         action = request.POST.get("action")
+#         review_reason = request.POST.get("review_reason")
+#
+#         if not review_reason:
+#             messages.error(request, "Please provide a reason.")
+#             return redirect("review_leave_request", leave_id=leave.id)
+#
+#         if action == "accept":
+#             leave.status = "Approved"
+#         elif action == "reject":
+#             leave.status = "Rejected"
+#
+#         leave.review_reason = review_reason
+#         leave.reviewed_by = request.user
+#         leave.save()
+#
+#         messages.success(request, f"Leave {action}ed successfully.")
+#         return redirect("dashboard")
+#
+#     return render(request, "myapp/review_leave_request.html", {
+#         "leave": leave,
+#         "previous_leaves": previous_leaves,
+#         "remaining_balance": remaining_balance,
+#     })
 
 
 @login_required
@@ -268,41 +268,41 @@ def manager_dashboard(request):
 
     return render(request, "myapp/manager_dashboard.html", {"pending_requests": pending_requests})
 
-@login_required
-def manager_leave_request_detail(request, request_id):
-    leave = get_object_or_404(LeaveRequest, id=request_id, status="Pending")
-
-    # Employee’s previous requests of same leave type
-    previous_requests = LeaveRequest.objects.filter(
-        user=leave.user, leave_type=leave.leave_type
-    ).exclude(id=leave.id)
-
-    # Remaining balance
-    leave_balance = calculate_leave_balance(leave.user, leave.leave_type)
-
-    if request.method == "POST":
-        action = request.POST.get("action")
-        review_reason = request.POST.get("review_reason")
-
-        leave.review_reason = review_reason
-        leave.reviewed_by = request.user
-
-        if action == "approve":
-            leave.status = "Approved"
-            leave.save()
-            calculate_leave_balance(leave.user, leave.leave_type)
-            messages.success(request, f"Leave approved for {leave.user.username}.")
-        elif action == "reject":
-            leave.status = "Rejected"
-            leave.save()
-            messages.error(request, f"Leave rejected for {leave.user.username}.")
-        return redirect("manager_dashboard")
-
-    return render(request, "myapp/manager_leave_request_detail.html", {
-        "leave": leave,
-        "previous_requests": previous_requests,
-        "leave_balance": leave_balance,
-    })
+# @login_required
+# def manager_leave_request_detail(request, request_id):
+#     leave = get_object_or_404(LeaveRequest, id=request_id, status="Pending")
+#
+#     # Employee’s previous requests of same leave type
+#     previous_requests = LeaveRequest.objects.filter(
+#         user=leave.user, leave_type=leave.leave_type
+#     ).exclude(id=leave.id)
+#
+#     # Remaining balance
+#     leave_balance = calculate_leave_balance(leave.user, leave.leave_type)
+#
+#     if request.method == "POST":
+#         action = request.POST.get("action")
+#         review_reason = request.POST.get("review_reason")
+#
+#         leave.review_reason = review_reason
+#         leave.reviewed_by = request.user
+#
+#         if action == "approve":
+#             leave.status = "Approved"
+#             leave.save()
+#             calculate_leave_balance(leave.user, leave.leave_type)
+#             messages.success(request, f"Leave approved for {leave.user.username}.")
+#         elif action == "reject":
+#             leave.status = "Rejected"
+#             leave.save()
+#             messages.error(request, f"Leave rejected for {leave.user.username}.")
+#         return redirect("manager_dashboard")
+#
+#     return render(request, "myapp/manager_leave_request_detail.html", {
+#         "leave": leave,
+#         "previous_requests": previous_requests,
+#         "leave_balance": leave_balance,
+#     })
 
 @login_required
 def manager_apply_leave(request):
@@ -393,3 +393,78 @@ def manager_leave_balance(request):
     leave_types = LeaveType.objects.all()
     balances = {lt.name: calculate_leave_balance(request.user, lt) for lt in leave_types}
     return render(request, "myapp/manager_leave_balance.html", {"balances": balances})
+
+
+# Helper function to get project-specific manager/lead
+def get_project_lead_for_user(user, project):
+    """Returns project lead if the user is a member and not the lead"""
+    if project.lead == user:
+        return None
+    return project.lead
+
+
+# 🔹 Manager view: Leave Request Detail
+@login_required
+def manager_leave_request_detail(request, leave_id):
+    leave = get_object_or_404(LeaveRequest, id=leave_id)
+
+    # Get employee’s projects
+    projects = ProjectMember.objects.filter(user=leave.user).select_related("project")
+
+    # Check if the manager is authorized for at least one project
+    authorized = False
+    for mem in projects:
+        if mem.project.lead == request.user:
+            authorized = True
+            break
+
+    # Also allow if the company-level manager matches
+    if leave.user.manager == request.user:
+        authorized = True
+
+    if request.user.role != "manager" or not authorized:
+        messages.error(request, "You are not authorized to view this request.")
+        return redirect("manager_dashboard")
+
+    # Get leave balances of that employee
+    balances = LeaveBalance.objects.filter(user=leave.user).select_related("leave_type")
+
+    return render(
+        request,
+        "myapp/manager_leave_request_detail.html",
+        {"leave": leave, "projects": projects, "balances": balances},
+    )
+
+
+# 🔹 HR view: Leave Request Review
+@login_required
+def review_leave_request(request, leave_id):
+    leave = get_object_or_404(LeaveRequest, id=leave_id)
+
+    # Only HR can access this
+    if request.user.role != "hr":
+        messages.error(request, "You are not authorized to review this request.")
+        return redirect("hr_dashboard")
+
+    # Get employee’s projects
+    projects = ProjectMember.objects.filter(user=leave.user).select_related("project")
+
+    # Get leave balances of that employee
+    balances = LeaveBalance.objects.filter(user=leave.user).select_related("leave_type")
+
+    # Annotate project manager for each project
+    projects_with_leads = []
+    for mem in projects:
+        proj = mem.project
+        projects_with_leads.append({
+            "name": proj.name,
+            "lead": proj.lead.username if proj.lead else None,
+            "status": proj.status,
+            "role": mem.role_in_project
+        })
+
+    return render(
+        request,
+        "myapp/review_leave_request.html",
+        {"leave": leave, "projects": projects_with_leads, "balances": balances},
+    )

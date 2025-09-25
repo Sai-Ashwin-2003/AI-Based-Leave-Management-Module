@@ -30,8 +30,22 @@ def calculate_leave_balance(user, leave_type):
     # Remaining balance
     remaining = max(balance_obj.total - used, 0)
 
+    # ✅ Save back to DB so it persists
+    balance_obj.used = used
+    balance_obj.remaining = remaining
+    balance_obj.save()
+
     return {
         "total": balance_obj.total,
         "used": used,
         "remaining": remaining,
     }
+
+
+def get_project_manager(user, project):
+    """
+    Returns the project manager for a given user inside a project.
+    """
+    if project.lead == user:
+        return None  # user is the project lead
+    return project.lead

@@ -1,45 +1,75 @@
-{% extends 'myapp/base_admin.html' %}
+{% extends "myapp/base_admin.html" %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">Review Leave Request</h2>
+<h2 class="text-2xl font-bold mb-6">Leave Request Review</h2>
 
-<div class="p-4 bg-white rounded shadow mb-6">
-  <p><strong>Employee:</strong> {{ leave.user.username }}</p>
-  <p><strong>Leave Type:</strong> {{ leave.leave_type.name }}</p>
-  <p><strong>Dates:</strong> {{ leave.start_date }} → {{ leave.end_date }}</p>
-  <p><strong>Reason:</strong> {{ leave.reason }}</p>
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Employee Info</h3>
+  <p><strong>Name:</strong> {{ leave.user.username }}</p>
+  <p><strong>Designation:</strong> {{ leave.user.designation|default:"Not Set" }}</p>
+  <p><strong>Manager:</strong>
+      {% if leave.user.manager %}
+        {{ leave.user.manager.username }}
+      {% elif projects %}
+        {{ projects.0.lead }}
+      {% else %}
+        None
+      {% endif %}
+  </p>
 </div>
 
-<div class="p-4 bg-gray-50 rounded shadow mb-6">
-  <h3 class="font-semibold mb-2">Previous Leaves ({{ leave.leave_type.name }})</h3>
-  {% if previous_leaves %}
-    <ul class="list-disc ml-6">
-      {% for prev in previous_leaves %}
-        <li>{{ prev.start_date }} → {{ prev.end_date }} ({{ prev.status }})</li>
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Leave Request</h3>
+  <p><strong>Type:</strong> {{ leave.leave_type.name }}</p>
+  <p><strong>Dates:</strong> {{ leave.start_date }} → {{ leave.end_date }}</p>
+  <p><strong>Reason:</strong> {{ leave.reason }}</p>
+  <p><strong>Status:</strong> {{ leave.status }}</p>
+</div>
+
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Projects</h3>
+  {% if projects %}
+  <table class="w-full border border-gray-300">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="border p-2">Project</th>
+        <th class="border p-2">Lead</th>
+        <th class="border p-2">Status</th>
+        <th class="border p-2">Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for proj in projects %}
+      <tr>
+        <td class="border p-2">{{ proj.name }}</td>
+        <td class="border p-2">{{ proj.lead|default:"-" }}</td>
+        <td class="border p-2">{{ proj.status }}</td>
+        <td class="border p-2">{{ proj.role }}</td>
+      </tr>
       {% endfor %}
-    </ul>
+    </tbody>
+  </table>
   {% else %}
-    <p>No previous leaves of this type.</p>
+  <p class="text-gray-500">No projects assigned.</p>
   {% endif %}
 </div>
 
-<div class="p-4 bg-gray-50 rounded shadow mb-6">
-  <p><strong>Remaining Leaves:</strong> {{ remaining_balance }}</p>
+<div class="bg-white shadow rounded p-6 mb-6">
+  <h3 class="text-xl font-semibold mb-4">Leave Balances</h3>
+  {% if balances %}
+  <ul>
+    {% for bal in balances %}
+      <li>{{ bal.leave_type.name }}: {{ bal.remaining }} days remaining</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-gray-500">No leave balances available.</p>
+  {% endif %}
 </div>
 
-<form method="POST">
-  {% csrf_token %}
-  <div class="mb-4">
-    <label class="block font-semibold mb-1">Reason (for accept/reject)</label>
-    <textarea name="review_reason" class="w-full p-2 border rounded" required></textarea>
-  </div>
-
-  <button type="submit" name="action" value="accept"
-          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-    Accept
-  </button>
-  <button type="submit" name="action" value="reject"
-          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-    Reject
-  </button>
-</form>
+<div class="mt-4 flex gap-4">
+  <a href="{% url 'approve_leave' leave.id %}"
+     class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Approve</a>
+  <a href="{% url 'reject_leave' leave.id %}"
+     class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
+</div>
 {% endblock %}
