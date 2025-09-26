@@ -40,11 +40,39 @@
   </main>
 
   <script>
-    flatpickr("#start_date", {altInput:true, altFormat:"F j, Y", dateFormat:"Y-m-d", minDate:"today"});
-    flatpickr("#end_date", {altInput:true, altFormat:"F j, Y", dateFormat:"Y-m-d", minDate:"today"});
+    // Initialize flatpickr if needed
+    if (document.querySelector("#start_date")) {
+      flatpickr("#start_date", {
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+        minDate: "today"
+      });
+    }
+    if (document.querySelector("#end_date")) {
+      flatpickr("#end_date", {
+        altInput: true,
+        altFormat: "F j, Y",
+        dateFormat: "Y-m-d",
+        minDate: "today"
+      });
+    }
+
+    // Fade out messages individually after 4 seconds
+    const messages = document.querySelectorAll('#messages-container > div');
+    messages.forEach(msg => {
+      msg.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+    });
+
     setTimeout(() => {
-      const messages = document.getElementById('messages-container');
-      if (messages) { messages.style.opacity = 0; setTimeout(() => messages.remove(), 500); }
+      messages.forEach(msg => {
+        msg.style.opacity = 0;
+        msg.style.transform = "translateY(-10px)";
+      });
+      setTimeout(() => {
+        const container = document.getElementById('messages-container');
+        if (container) container.remove();
+      }, 500); // match transition duration
     }, 4000);
   </script>
 </body>

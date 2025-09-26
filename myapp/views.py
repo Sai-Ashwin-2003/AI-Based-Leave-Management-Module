@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
 
-from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember
+from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification
 from .utils import calculate_leave_balance
 
 User = get_user_model()  # Use CustomUser throughout
@@ -257,16 +257,24 @@ def user_report(request, user_id):
 
 @login_required
 def manager_dashboard(request):
-    # Only get employees under this manager
-    employees_under_manager = CustomUser.objects.filter(manager=request.user)
+    # Existing pending requests
+    employees_under_manager = CustomUser.objects.filter(manager=request.user).distinct()
+    project_employees = CustomUser.objects.filter(projectmember__project__lead=request.user).distinct()
+    all_employees = (employees_under_manager | project_employees).distinct()
 
-    # Fetch pending requests for these employees
     pending_requests = LeaveRequest.objects.filter(
-        status='Pending',
-        user__in=employees_under_manager
-    ).order_by('-applied_at')
+        status="Pending",
+        user__in=all_employees
+    ).order_by("-applied_at")
 
-    return render(request, "myapp/manager_dashboard.html", {"pending_requests": pending_requests})
+    # Notifications
+    notifications = request.user.notifications.filter(is_read=False).order_by("-created_at")
+
+    return render(request, "myapp/manager_dashboard.html", {
+        "pending_requests": pending_requests,
+        "notifications": notifications
+    })
+
 
 # @login_required
 # def manager_leave_request_detail(request, request_id):
@@ -349,44 +357,89 @@ def manager_view_requests(request):
 
 
 @login_required
-def manager_approve_leave(request, request_id):
-    leave = get_object_or_404(LeaveRequest, id=request_id, status="Pending")
-    leave.status = "Approved"
-    leave.save()
-    calculate_leave_balance(leave.user, leave.leave_type)
-    messages.success(request, f"Leave approved for {leave.user.username}.")
-    return redirect("manager_view_requests")
+def manager_approve_leave(request, leave_id):
+    leave = get_object_or_404(LeaveRequest, id=leave_id, status="Pending")
+
+    # check authorization
+    is_authorized = leave.user.manager == request.user or ProjectMember.objects.filter(user=leave.user, project__lead=request.user).exists()
+    if not is_authorized:
+        messages.error(request, "You are not authorized to approve this request.")
+        return redirect("manager_dashboard")
+
+    if request.method == "POST":
+        review_reason = request.POST.get("reason", "")
+        leave.status = "Approved"
+        leave.reviewed_by = request.user
+        leave.review_reason = review_reason
+        leave.save()
+        calculate_leave_balance(leave.user, leave.leave_type)
+        messages.success(request, f"Leave approved for {leave.user.username}.")
+        return redirect("manager_dashboard")
+
+    # GET request: show form
+    return render(request, "myapp/leave_review_form.html", {
+        "leave": leave,
+        "action": "Approve"
+    })
 
 
 @login_required
-def manager_reject_leave(request, request_id):
-    leave = get_object_or_404(LeaveRequest, id=request_id, status="Pending")
-    leave.status = "Rejected"
-    leave.save()
-    messages.info(request, f"Leave rejected for {leave.user.username}.")
-    return redirect("manager_view_requests")
+def manager_reject_leave(request, leave_id):
+    leave = get_object_or_404(LeaveRequest, id=leave_id, status="Pending")
+
+    is_authorized = leave.user.manager == request.user or ProjectMember.objects.filter(user=leave.user, project__lead=request.user).exists()
+    if not is_authorized:
+        messages.error(request, "You are not authorized to reject this request.")
+        return redirect("manager_dashboard")
+
+    if request.method == "POST":
+        review_reason = request.POST.get("reason", "")
+        leave.status = "Rejected"
+        leave.reviewed_by = request.user
+        leave.review_reason = review_reason
+        leave.save()
+        messages.info(request, f"Leave rejected for {leave.user.username}.")
+        return redirect("manager_dashboard")
+
+    return render(request, "myapp/leave_review_form.html", {
+        "leave": leave,
+        "action": "Reject"
+    })
 
 
 @login_required
 def manager_reports(request):
-    print(request.user.username, request.user.role)
+    # Direct employees under this manager
+    employees = CustomUser.objects.filter(manager=request.user, role="employee").distinct()
 
-    # if request.user.role != "manager":
-    #     return HttpResponseForbidden("You are not authorized to view this page.")
+    # 2️⃣ Employees from projects where current user is a lead
+    project_employees = CustomUser.objects.filter(
+        projectmember__project__lead=request.user
+    ).distinct()
 
-    employees = CustomUser.objects.filter(role="employee", manager=request.user)
+    # 3️⃣ If this manager is a member in another project, include that project's lead’s employees
+    lead_projects = ProjectMember.objects.filter(user=request.user).values_list("project__lead", flat=True)
+    extra_employees = CustomUser.objects.filter(
+        projectmember__project__lead__in=lead_projects,
+        role="manager"
+    ).distinct()
+
+    # Combine all
+    all_employees = ( extra_employees | project_employees | employees).exclude(id=request.user.id).distinct()
+
     leave_types = LeaveType.objects.all()
     report = []
 
-    for emp in employees:
+    for emp in all_employees:
         emp_data = {
-            'employee': emp,
-            'balances': {lt.name: calculate_leave_balance(emp, lt) for lt in leave_types}
+            "employee": emp,
+            "balances": {
+                lt.name: calculate_leave_balance(emp, lt) for lt in leave_types
+            },
         }
         report.append(emp_data)
 
     return render(request, "myapp/manager_reports.html", {"reports": report})
-
 
 @login_required
 def manager_leave_balance(request):
@@ -444,7 +497,7 @@ def review_leave_request(request, leave_id):
     # Only HR can access this
     if request.user.role != "hr":
         messages.error(request, "You are not authorized to review this request.")
-        return redirect("hr_dashboard")
+        return redirect("dashboard")
 
     # Get employee’s projects
     projects = ProjectMember.objects.filter(user=leave.user).select_related("project")
@@ -468,3 +521,43 @@ def review_leave_request(request, leave_id):
         "myapp/review_leave_request.html",
         {"leave": leave, "projects": projects_with_leads, "balances": balances},
     )
+
+
+
+
+
+
+@login_required
+def notify_team_leads(request, leave_id):
+    leave = get_object_or_404(LeaveRequest, id=leave_id)
+
+    # Check if already notified
+    if leave.leads_notified:
+        messages.info(request, "All leads have already been notified.")
+    else:
+        projects = ProjectMember.objects.filter(user=leave.user).select_related("project")
+        notified = 0
+
+        for member in projects:
+            lead = member.project.lead
+            if lead and lead != leave.user.manager:  # skip if same as employee’s manager
+                Notification.objects.create(
+                    recipient=lead,
+                    message=f"{leave.user.username} has requested leave ({leave.start_date} → {leave.end_date})."
+                )
+                notified += 1
+
+        if notified:
+            messages.success(request, f"Notified {notified} team lead(s).")
+        else:
+            messages.info(request, "No additional leads to notify.")
+
+        # mark as notified
+        leave.leads_notified = True
+        leave.save()
+
+    # Redirect back to the appropriate page
+    if request.user.role == "hr":
+        return redirect("review_leave_request", leave_id=leave.id)
+    else:
+        return redirect("manager_leave_request_detail", leave_id=leave.id)

@@ -4,7 +4,7 @@
   <h2 class="text-2xl font-bold mb-6">Pending Leave Requests</h2>
 
   {% if pending_requests %}
-    <table class="w-full bg-white rounded shadow">
+    <table class="w-full bg-white rounded shadow mb-8">
       <thead>
         <tr class="bg-gray-200">
           <th class="p-3 text-left">Employee</th>
@@ -33,5 +33,19 @@
     </table>
   {% else %}
     <p class="text-gray-500">No pending requests.</p>
+  {% endif %}
+
+  <h2 class="text-2xl font-bold mb-4">Notifications</h2>
+
+  {% if notifications %}
+    <ul class="bg-white rounded shadow p-4">
+      {% for note in notifications %}
+      <li class="border-b py-2">
+        {{ note.message }} <span class="text-gray-400 text-sm">({{ note.created_at|date:"M d, Y H:i" }})</span>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-500">No new notifications.</p>
   {% endif %}
 {% endblock %}

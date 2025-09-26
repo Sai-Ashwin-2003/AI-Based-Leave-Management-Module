@@ -25,10 +25,14 @@ urlpatterns = [
 
     # Manager routes
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
-    path('manager/review-leave/<int:request_id>/', views.manager_leave_request_detail, name='manager_leave_request_detail'),
+    path('manager/review-leave/<int:leave_id>/', views.manager_leave_request_detail, name='manager_leave_request_detail'),
+    path("manager/review-leave/<int:leave_id>/approve/", views.manager_approve_leave, name="manager_approve_leave"),
+    path("manager/review-leave/<int:leave_id>/reject/", views.manager_reject_leave, name="manager_reject_leave"),
     path('manager/apply/', views.manager_apply_leave, name='manager_apply_leave'),
     path('manager/requests/', views.manager_view_requests, name='manager_view_requests'),
     path('manager/reports/', views.manager_reports, name='manager_reports'),
     path('manager/balance/', views.manager_leave_balance, name='manager_leave_balance'),
+
+    path('Notify/<int:leave_id>', views.notify_team_leads, name='notify_team_leads'),
 
 ]

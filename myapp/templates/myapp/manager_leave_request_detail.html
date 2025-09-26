@@ -49,6 +49,10 @@
       {% endfor %}
     </tbody>
   </table>
+    <button id="notify-btn" data-leave-id="{{ leave.id }}"
+            class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+      Notify Team Leads
+    </button>
   {% else %}
   <p class="text-gray-500">No projects assigned.</p>
   {% endif %}
@@ -73,4 +77,21 @@
   <a href="{% url 'manager_reject_leave' leave.id %}"
      class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Reject</a>
 </div>
+
+
+<script>
+  const notifyBtn = document.getElementById("notify-btn");
+  notifyBtn.addEventListener("click", () => {
+    const leaveId = notifyBtn.dataset.leaveId;
+
+    fetch(`/leave/${leaveId}/notify/`)
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+      })
+      .catch(err => console.error(err));
+  });
+</script>
+
+
 {% endblock %}
