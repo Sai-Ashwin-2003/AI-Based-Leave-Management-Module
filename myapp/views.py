@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from datetime import datetime
 from django.contrib.auth import authenticate, login, get_user_model, logout
 from django.contrib.auth.decorators import login_required
@@ -6,9 +7,18 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
-
+import json
+import requests
+from datetime import date, timedelta
 from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification
 from .utils import calculate_leave_balance
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # loads variables from .env
+
+key = os.environ.get("SPARK_FINCH_KEY")
+  # debug to confirm
 
 User = get_user_model()  # Use CustomUser throughout
 
@@ -98,9 +108,42 @@ def view_requests(request):
 
 @login_required
 def view_balance(request):
+    # Leave balances
     leave_types = LeaveType.objects.all()
     balances = {lt.name: calculate_leave_balance(request.user, lt) for lt in leave_types}
-    return render(request, "myapp/view_balance.html", {"balances": balances})
+
+    leave_dates = []
+
+    # 1. Local DB leaves
+    leaves = LeaveRequest.objects.filter(user=request.user, status="Approved")
+    for leave in leaves:
+        day = leave.start_date
+        while day <= leave.end_date:
+            leave_dates.append(str(day))
+            day += timedelta(days=1)
+
+    # 2. External API
+    try:
+        url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
+        headers = {"token": key}   # replace VALUE with actual
+        params = {"date": "2025-01-17", "page": 1, "page_size": 5}
+
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            date_ = data.get("date")
+            # Example: extract emails + date
+            for item in data.get("users", []):
+                email = item.get("email")
+                if email == request.user.username:  # match with logged in user
+                    leave_dates.append(date_)
+    except Exception as e:
+        print("API fetch failed:", e)
+
+    return render(request, "myapp/view_balance.html", {
+        "balances": balances,
+        "leave_dates_json": json.dumps(leave_dates),
+    })
 
 
 # ---------------- HR VIEWS ---------------- #
@@ -443,9 +486,23 @@ def manager_reports(request):
 
 @login_required
 def manager_leave_balance(request):
+    # Leave balances
     leave_types = LeaveType.objects.all()
     balances = {lt.name: calculate_leave_balance(request.user, lt) for lt in leave_types}
-    return render(request, "myapp/manager_leave_balance.html", {"balances": balances})
+
+    # Get all approved leave days as strings YYYY-MM-DD
+    leaves = LeaveRequest.objects.filter(user=request.user, status="Approved")
+    leave_dates = []
+    for leave in leaves:
+        day = leave.start_date
+        while day <= leave.end_date:
+            leave_dates.append(str(day))  # only YYYY-MM-DD
+            day += timedelta(days=1)
+
+    return render(request, "myapp/manager_leave_balance.html", {
+        "balances": balances,
+        "leave_dates_json": json.dumps(leave_dates),
+    })
 
 
 # Helper function to get project-specific manager/lead

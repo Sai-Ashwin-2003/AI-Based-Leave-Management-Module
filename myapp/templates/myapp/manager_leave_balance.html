@@ -1,29 +1,59 @@
-{% extends "myapp/manager_base.html" %}
+{% extends 'myapp/manager_base.html' %}
 
 {% block content %}
-  <h2 class="text-2xl font-bold mb-6">Leave Balance</h2>
-  <table class="w-full bg-white rounded shadow">
+
+<h2 class="text-2xl font-bold mb-6">Leave Calendar</h2>
+<div type="text" id="leave_calendar" class="border p-2 rounded w-full max-w-md"></div>
+
+<h2 class="text-2xl font-bold mb-6 mt-8">Leave Balance</h2>
+
+<table class="w-full bg-white rounded shadow mb-8">
     <thead>
-      <tr class="bg-gray-200">
-        <th class="p-3 text-left">Leave Type</th>
-        <th class="p-3 text-left">Used</th>
-        <th class="p-3 text-left">Remaining</th>
-        <th class="p-3 text-left">Total</th>
-      </tr>
+        <tr class="bg-gray-200">
+            <th class="p-3 text-left">Leave Type</th>
+            <th class="p-3 text-left">Used</th>
+            <th class="p-3 text-left">Remaining</th>
+            <th class="p-3 text-left">Total</th>
+        </tr>
     </thead>
     <tbody>
-      {% for leave_type, bal in balances.items %}
+        {% for leave_type, bal in balances.items %}
         <tr class="border-b">
-          <td class="p-3">{{ leave_type }}</td>
-          <td class="p-3">{{ bal.used }}</td>
-          <td class="p-3">{{ bal.remaining }}</td>
-          <td class="p-3">{{ bal.total }}</td>
+            <td class="p-3">{{ leave_type }}</td>
+            <td class="p-3">{{ bal.used }}</td>
+            <td class="p-3">{{ bal.remaining }}</td>
+            <td class="p-3">{{ bal.total }}</td>
         </tr>
-      {% empty %}
+        {% empty %}
         <tr>
-          <td colspan="4" class="p-3 text-center text-gray-500">No leave types defined yet.</td>
+            <td colspan="4" class="p-3 text-center text-gray-500">No leave types defined yet.</td>
         </tr>
-      {% endfor %}
+        {% endfor %}
     </tbody>
-  </table>
+</table>
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var leaveDates = JSON.parse('{{ leave_dates_json|escapejs }}');
+
+    flatpickr("#leave_calendar", {
+        inline: true,
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+            var dateStr = dayElem.dateObj.getFullYear() + '-' +
+                          String(dayElem.dateObj.getMonth()+1).padStart(2,'0') + '-' +
+                          String(dayElem.dateObj.getDate()).padStart(2,'0');
+            if (leaveDates.includes(dateStr)) {
+                dayElem.style.backgroundColor = "red";
+                dayElem.style.color = "white";
+            }
+        }
+    });
+});
+</script>
+
 {% endblock %}
