@@ -268,9 +268,50 @@ def set_leave_limits(request):
 
 
 # Level 1: Show links for Managers and Employees
+
 @login_required
 def leave_reports(request):
-    return render(request, "myapp/view_reports.html")
+    selected_date = request.GET.get("date")  # e.g. 2025-09-16
+    page = int(request.GET.get("page", 1))
+    page_size = 20
+
+    users_from_api = []
+    pagination = {}
+    has_more = False
+    has_previous = False
+
+    if selected_date:
+        key = os.environ.get("SPARK_FINCH_KEY")
+        url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
+        headers = {"token": key}
+
+        try:
+            params = {"date": selected_date, "page": page, "page_size": page_size}
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+
+                # extract users
+                users_from_api = [item.get("email") for item in data.get("users", [])]
+
+                # extract pagination info
+                pagination = data.get("pagination", {})
+                has_more = pagination.get("has_next", False)
+                has_previous = pagination.get("has_previous", False)
+
+        except Exception as e:
+            print("API fetch failed:", e)
+
+    return render(request, "myapp/view_reports.html", {
+        "selected_date": selected_date,
+        "users_from_api": users_from_api,
+        "page": page,
+        "has_more": has_more,
+        "has_previous": has_previous,
+        "pagination": pagination,
+    })
+
 
 # Level 2: Show list of users by role
 @login_required
