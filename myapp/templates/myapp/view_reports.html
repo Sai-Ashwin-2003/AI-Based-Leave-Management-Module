@@ -16,6 +16,10 @@
 
 {% if selected_date %}
 
+        <p class="mb-2 mt-2">
+            Total Employees: <b>{{ total_employees }}</b>
+        </p>
+
     <ul class="list-disc ml-6 mt-4">
         {% for email in users_from_api %}
             <li>{{ email }}</li>
@@ -27,12 +31,12 @@
     <div class="mt-4 flex gap-2">
         {% if has_previous %}
             <a href="?date={{ selected_date }}&page={{ pagination.previous_page }}"
-               class="px-3 py-1 bg-gray-300 rounded">Previous 20</a>
+               class="px-3 py-1 bg-gray-300 rounded">Previous</a>
         {% endif %}
 
         {% if has_more %}
             <a href="?date={{ selected_date }}&page={{ pagination.next_page }}"
-               class="px-3 py-1 bg-blue-500 text-white rounded">Next 20</a>
+               class="px-3 py-1 bg-blue-500 text-white rounded">Next</a>
         {% endif %}
     </div>
 {% else %}

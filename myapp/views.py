@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.views.decorators.cache import never_cache
 import json
 import requests
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification
 from .utils import calculate_leave_balance
 from dotenv import load_dotenv
@@ -125,18 +125,32 @@ def view_balance(request):
     # 2. External API
     try:
         url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
-        headers = {"token": key}   # replace VALUE with actual
+        headers = {"token": key}  # replace VALUE with actual
         params = {"date": "2025-01-17", "page": 1, "page_size": 5}
 
         response = requests.get(url, headers=headers, params=params)
         if response.status_code == 200:
             data = response.json()
-            date_ = data.get("date")
-            # Example: extract emails + date
+
+            # date from API (string)
+            date_str = data.get("date")  # e.g., "2025-09-16"
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+
+            days_counted = 0
+            current_date = date_obj
+
+            while days_counted < 7:
+                current_date -= timedelta(days=1)
+                # skip Saturday (5) and Sunday (6)
+                if current_date.weekday() < 5:
+                    days_counted += 1
+
+            date_ = current_date
+            # extract emails + date
             for item in data.get("users", []):
                 email = item.get("email")
                 if email == request.user.username:  # match with logged in user
-                    leave_dates.append(date_)
+                    leave_dates.append(date_.strftime("%Y-%m-%d"))  # << convert to string
     except Exception as e:
         print("API fetch failed:", e)
 
@@ -279,6 +293,7 @@ def leave_reports(request):
     pagination = {}
     has_more = False
     has_previous = False
+    total_employees=0
 
     if selected_date:
         key = os.environ.get("SPARK_FINCH_KEY")
@@ -299,6 +314,7 @@ def leave_reports(request):
                 pagination = data.get("pagination", {})
                 has_more = pagination.get("has_next", False)
                 has_previous = pagination.get("has_previous", False)
+                total_employees = pagination.get("total_items", 0)
 
         except Exception as e:
             print("API fetch failed:", e)
@@ -310,6 +326,7 @@ def leave_reports(request):
         "has_more": has_more,
         "has_previous": has_previous,
         "pagination": pagination,
+        "total_employees":total_employees,
     })
 
 
