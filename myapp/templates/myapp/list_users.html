@@ -1,17 +1,26 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
-<h2 class="text-xl font-bold mb-4">{{ role|title }}s</h2>
-<ul class="list-disc ml-6">
-    {% for user in users %}
-        <li>
-            <a href="{% url 'user_report' user.id %}" class="text-blue-600 hover:underline">{{ user.username }}</a>
-        </li>
-    {% empty %}
-        <li class="text-gray-500">No {{ role }}s found</li>
-    {% endfor %}
-</ul>
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">{{ role|title }}s</h2>
 
-<p class="mt-4">
-    <a href="{% url 'view_reports' %}" class="text-blue-600 hover:underline">← Back</a>
-</p>
+<div class="bg-white shadow-md rounded-lg p-6">
+  <ul class="divide-y divide-gray-200">
+    {% for user in users %}
+      <li class="py-3">
+        <a href="{% url 'user_report' user.id %}"
+           class="text-indigo-600 hover:underline font-medium">
+          {{ user.username }}
+        </a>
+      </li>
+    {% empty %}
+      <li class="py-3 text-gray-500">No {{ role }}s found</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="mt-6">
+  <a href="{% url 'view_reports' %}"
+     class="inline-flex items-center text-indigo-600 hover:underline font-medium">
+    ← Back to Reports
+  </a>
+</div>
 {% endblock %}

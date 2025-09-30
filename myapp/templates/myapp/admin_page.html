@@ -1,35 +1,40 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
-<h2 class="text-xl font-bold mb-4">Pending Leave Requests</h2>
-<table class="w-full border-collapse border border-gray-300 bg-white shadow rounded-lg">
-  <thead class="bg-gray-200">
-    <tr>
-      <th class="border p-2">Employee</th>
-      <th class="border p-2">Leave Type</th>
-      <th class="border p-2">Dates</th>
-      <th class="border p-2">Reason</th>
-      <th class="border p-2">Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for req in requests %}
-    <tr class="hover:bg-gray-100">
-      <td class="border p-2">{{ req.user.username }}</td>
-      <td class="border p-2">{{ req.leave_type }}</td>
-      <td class="border p-2">{{ req.start_date }} → {{ req.end_date }}</td>
-      <td class="border p-2">{{ req.reason }}</td>
-      <td class="border p-2">
-        <a href="{% url 'review_leave_request' req.id %}"
-           class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-          Leave Request
-        </a>
-      </td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="5" class="border p-2 text-center text-gray-500">No pending requests</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">Pending Leave Requests</h2>
+
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+  <table class="min-w-full text-sm text-left text-gray-700">
+    <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+      <tr>
+        <th class="px-6 py-3 border-b">Employee</th>
+        <th class="px-6 py-3 border-b">Leave Type</th>
+        <th class="px-6 py-3 border-b">Dates</th>
+        <th class="px-6 py-3 border-b">Reason</th>
+        <th class="px-6 py-3 border-b text-center">Action</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200">
+      {% for req in requests %}
+      <tr class="hover:bg-indigo-50 transition duration-200">
+        <td class="px-6 py-4">{{ req.user.username }}</td>
+        <td class="px-6 py-4">{{ req.leave_type }}</td>
+        <td class="px-6 py-4">{{ req.start_date }} → {{ req.end_date }}</td>
+        <td class="px-6 py-4">{{ req.reason }}</td>
+        <td class="px-6 py-4 text-center">
+          <a href="{% url 'review_leave_request' req.id %}"
+             class="inline-block px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-md shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 transition">
+            Review
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+          No pending requests
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

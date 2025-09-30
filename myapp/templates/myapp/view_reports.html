@@ -1,47 +1,78 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
-<h2 class="text-xl font-bold mb-4">Leave Reports</h2>
-<ul class="list-disc ml-6">
-    <li><a href="{% url 'list_users' 'manager' %}" class="text-blue-600 hover:underline">Managers</a></li>
-    <li><a href="{% url 'list_users' 'employee' %}" class="text-blue-600 hover:underline">Employees</a></li>
-</ul>
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">Leave Reports</h2>
 
-<h2 class="text-xl font-bold mb-4 mt-4">Spark Finch Unjustified Employees</h2>
+<div class="bg-white shadow-md rounded-lg p-6 mb-6">
+  <ul class="space-y-2">
+    <li>
+      <a href="{% url 'list_users' 'manager' %}" class="text-indigo-600 hover:underline font-medium">
+        Managers
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'list_users' 'employee' %}" class="text-indigo-600 hover:underline font-medium">
+        Employees
+      </a>
+    </li>
+  </ul>
+</div>
 
-<form method="get" action="">
-    <label for="date" class="font-semibold">Select Date:</label>
-    <input type="date" id="date" name="date" class="border p-2 rounded" value="{{ selected_date }}">
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Fetch</button>
-</form>
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">Spark Finch Unjustified Employees</h2>
 
-{% if selected_date %}
+<div class="bg-white shadow-md rounded-lg p-6">
+  <form method="get" action="" class="flex flex-wrap items-center gap-3 mb-6">
+    <div>
+      <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Select Date:</label>
+      <input
+        type="date"
+        id="date"
+        name="date"
+        value="{{ selected_date }}"
+        class="border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 sm:text-sm"
+      >
+    </div>
+    <div class="pt-6">
+      <button
+        type="submit"
+        class="bg-indigo-600 text-white px-5 py-2 rounded-md shadow hover:bg-indigo-700 transition text-sm font-medium"
+      >
+        Fetch
+      </button>
+    </div>
+  </form>
 
-        <p class="mb-2 mt-2">
-            Total Employees: <b>{{ total_employees }}</b>
-        </p>
+  {% if selected_date %}
+    <div class="space-y-2 mb-6">
+      <p class="text-gray-700">Total Employees: <span class="font-semibold">{{ total_employees }}</span></p>
+      <p class="text-gray-700">Non-Compliant Users: <span class="font-semibold text-red-600">{{ non_compliant_users }}</span></p>
+      <p class="text-gray-700">Compliant Users: <span class="font-semibold text-green-600">{{ compliant_users }}</span></p>
+    </div>
 
-    <ul class="list-disc ml-6 mt-4">
-        {% for email in users_from_api %}
-            <li>{{ email }}</li>
-        {% empty %}
-            <li>No users found.</li>
-        {% endfor %}
+    <ul class="list-disc pl-6 space-y-1 text-gray-800">
+      {% for email in users_from_api %}
+        <li>{{ email }}</li>
+      {% empty %}
+        <li class="text-gray-500">No users found.</li>
+      {% endfor %}
     </ul>
 
-    <div class="mt-4 flex gap-2">
-        {% if has_previous %}
-            <a href="?date={{ selected_date }}&page={{ pagination.previous_page }}"
-               class="px-3 py-1 bg-gray-300 rounded">Previous</a>
-        {% endif %}
+    <div class="mt-6 flex gap-3">
+      {% if has_previous %}
+        <a href="?date={{ selected_date }}&page={{ pagination.previous_page }}"
+           class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
+          Previous
+        </a>
+      {% endif %}
 
-        {% if has_more %}
-            <a href="?date={{ selected_date }}&page={{ pagination.next_page }}"
-               class="px-3 py-1 bg-blue-500 text-white rounded">Next</a>
-        {% endif %}
+      {% if has_more %}
+        <a href="?date={{ selected_date }}&page={{ pagination.next_page }}"
+           class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">
+          Next
+        </a>
+      {% endif %}
     </div>
-{% else %}
-    <p>Select a date from the calendar to view reports.</p>
-{% endif %}
-
+  {% else %}
+    <p class="text-gray-500">Select a date from the calendar to view reports.</p>
+  {% endif %}
+</div>
 {% endblock %}
-

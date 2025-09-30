@@ -294,6 +294,8 @@ def leave_reports(request):
     has_more = False
     has_previous = False
     total_employees=0
+    non_compliant_users = 0
+    compliant_users = 0
 
     if selected_date:
         key = os.environ.get("SPARK_FINCH_KEY")
@@ -314,7 +316,10 @@ def leave_reports(request):
                 pagination = data.get("pagination", {})
                 has_more = pagination.get("has_next", False)
                 has_previous = pagination.get("has_previous", False)
-                total_employees = pagination.get("total_items", 0)
+                total_employees = data.get("total_users")
+
+                non_compliant_users = data.get("non_compliant_users",0)
+                compliant_users = data.get("compliant_users",0)
 
         except Exception as e:
             print("API fetch failed:", e)
@@ -327,6 +332,8 @@ def leave_reports(request):
         "has_previous": has_previous,
         "pagination": pagination,
         "total_employees":total_employees,
+        "non_compliant_users": non_compliant_users,
+        "compliant_users": compliant_users,
     })
 
 
@@ -375,43 +382,6 @@ def manager_dashboard(request):
         "pending_requests": pending_requests,
         "notifications": notifications
     })
-
-
-# @login_required
-# def manager_leave_request_detail(request, request_id):
-#     leave = get_object_or_404(LeaveRequest, id=request_id, status="Pending")
-#
-#     # Employee’s previous requests of same leave type
-#     previous_requests = LeaveRequest.objects.filter(
-#         user=leave.user, leave_type=leave.leave_type
-#     ).exclude(id=leave.id)
-#
-#     # Remaining balance
-#     leave_balance = calculate_leave_balance(leave.user, leave.leave_type)
-#
-#     if request.method == "POST":
-#         action = request.POST.get("action")
-#         review_reason = request.POST.get("review_reason")
-#
-#         leave.review_reason = review_reason
-#         leave.reviewed_by = request.user
-#
-#         if action == "approve":
-#             leave.status = "Approved"
-#             leave.save()
-#             calculate_leave_balance(leave.user, leave.leave_type)
-#             messages.success(request, f"Leave approved for {leave.user.username}.")
-#         elif action == "reject":
-#             leave.status = "Rejected"
-#             leave.save()
-#             messages.error(request, f"Leave rejected for {leave.user.username}.")
-#         return redirect("manager_dashboard")
-#
-#     return render(request, "myapp/manager_leave_request_detail.html", {
-#         "leave": leave,
-#         "previous_requests": previous_requests,
-#         "leave_balance": leave_balance,
-#     })
 
 @login_required
 def manager_apply_leave(request):

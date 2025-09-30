@@ -1,16 +1,39 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
-  <h2 class="text-xl font-bold mb-4">Define Leave Types</h2>
-  <form method="post" class="space-y-4">
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">Define Leave Types</h2>
+
+<div class="bg-white shadow-md rounded-lg p-6">
+  <form method="post" class="space-y-5">
     {% csrf_token %}
+
     <div>
-      <label class="block">Leave Type Name</label>
-      <input type="text" name="name" class="w-full p-2 border rounded">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Leave Type Name
+      </label>
+      <input
+        type="text"
+        name="name"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 sm:text-sm"
+      >
     </div>
+
     <div>
-      <label class="block">Yearly Limit</label>
-      <input type="number" name="yearly_limit" class="w-full p-2 border rounded">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Yearly Limit
+      </label>
+      <input
+        type="number"
+        name="yearly_limit"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 sm:text-sm"
+      >
     </div>
-    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Save</button>
+
+    <div class="pt-4">
+      <button type="submit"
+              class="inline-flex items-center px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 transition">
+        Save
+      </button>
+    </div>
   </form>
+</div>
 {% endblock %}

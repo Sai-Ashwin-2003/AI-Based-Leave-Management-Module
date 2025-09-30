@@ -1,37 +1,45 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
-<h2 class="text-xl font-bold mb-4">
-    Leave Report for {{ report.employee.username }} ({{ report.employee.role }})
-</h2>
+<div class="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800">
+        Leave Report for <span class="text-blue-600">{{ report.employee.username }}</span>
+        <span class="text-sm text-gray-500">({{ report.employee.role }})</span>
+    </h2>
 
-<table class="w-full border-collapse border border-gray-300">
-    <thead class="bg-gray-200">
-        <tr>
-            <th class="border p-2">Leave Type</th>
-            <th class="border p-2">Used</th>
-            <th class="border p-2">Remaining</th>
-            <th class="border p-2">Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for lt, data in report.balances.items %}
-            <tr>
-                <td class="border p-2">{{ lt }}</td>
-                <td class="border p-2">{{ data.used }}</td>
-                <td class="border p-2">{{ data.remaining }}</td>
-                <td class="border p-2">{{ data.total }}</td>
-            </tr>
-        {% empty %}
-            <tr>
-                <td colspan="4" class="text-center text-gray-500 p-2">No leave data available</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <div class="overflow-x-auto">
+        <table class="w-full border border-gray-200 rounded-lg">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="border p-3 text-left font-semibold">Leave Type</th>
+                    <th class="border p-3 text-center font-semibold">Used</th>
+                    <th class="border p-3 text-center font-semibold">Remaining</th>
+                    <th class="border p-3 text-center font-semibold">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lt, data in report.balances.items %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-3">{{ lt }}</td>
+                        <td class="border p-3 text-center">{{ data.used }}</td>
+                        <td class="border p-3 text-center">{{ data.remaining }}</td>
+                        <td class="border p-3 text-center">{{ data.total }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-gray-500 p-4">
+                            No leave data available
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-<p class="mt-4">
-    <a href="{% url 'list_users' report.employee.role %}" class="text-blue-600 hover:underline">
-        ← Back to {{ report.employee.role|title }} list
-    </a>
-</p>
+    <div class="mt-6">
+        <a href="{% url 'list_users' report.employee.role %}"
+           class="inline-block text-blue-600 hover:text-blue-800 transition font-medium">
+            ← Back to {{ report.employee.role|title }} list
+        </a>
+    </div>
+</div>
 {% endblock %}
