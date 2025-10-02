@@ -285,7 +285,7 @@ def set_leave_limits(request):
 
 @login_required
 def leave_reports(request):
-    selected_date = request.GET.get("date")  # e.g. 2025-09-16
+    selected_date = request.GET.get("date")
     page = int(request.GET.get("page", 1))
     page_size = 20
 
@@ -293,33 +293,79 @@ def leave_reports(request):
     pagination = {}
     has_more = False
     has_previous = False
-    total_employees=0
+    total_employees = 0
     non_compliant_users = 0
     compliant_users = 0
 
+    # Aggregated ranges
+    week_data = {"compliant": 0, "non_compliant": 0}
+    month_data = {"compliant": 0, "non_compliant": 0}
+    three_month_data = {"compliant": 0, "non_compliant": 0}
+    six_month_data = {"compliant": 0, "non_compliant": 0}
+
     if selected_date:
-        key = os.environ.get("SPARK_FINCH_KEY")
-        url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
-        headers = {"token": key}
-
         try:
-            params = {"date": selected_date, "page": page, "page_size": page_size}
-            response = requests.get(url, headers=headers, params=params)
+            base_date = datetime.strptime(selected_date, "%Y-%m-%d")
+            key = os.environ.get("SPARK_FINCH_KEY")
+            url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
+            headers = {"token": key}
 
-            if response.status_code == 200:
-                data = response.json()
+            # --- Helper: fetch API for a single date ---
+            def fetch_day(date):
+                params = {"date": date.strftime("%Y-%m-%d"), "page": page, "page_size": page_size}
+                r = requests.get(url, headers=headers, params=params)
+                if r.status_code == 200:
+                    d = r.json()
+                    return {
+                        "compliant": d.get("compliant_users", 0),
+                        "non_compliant": d.get("non_compliant_users", 0),
+                        "users": [item.get("email") for item in d.get("users", [])],
+                        "pagination": d.get("pagination", {}),
+                        "total_users": d.get("total_users", 0),
+                    }
+                return {"compliant": 0, "non_compliant": 0, "users": [], "pagination": {}, "total_users": 0}
 
-                # extract users
-                users_from_api = [item.get("email") for item in data.get("users", [])]
+            # --- Today’s Report ---
+            today_data = fetch_day(base_date)
+            users_from_api = today_data["users"]
+            pagination = today_data["pagination"]
+            total_employees = today_data["total_users"]
+            compliant_users = today_data["compliant"]
+            non_compliant_users = today_data["non_compliant"]
 
-                # extract pagination info
-                pagination = data.get("pagination", {})
-                has_more = pagination.get("has_next", False)
-                has_previous = pagination.get("has_previous", False)
-                total_employees = data.get("total_users")
+            has_more = pagination.get("has_next", False)
+            has_previous = pagination.get("has_previous", False)
 
-                non_compliant_users = data.get("non_compliant_users",0)
-                compliant_users = data.get("compliant_users",0)
+            # --- Aggregations ---
+            import concurrent.futures
+
+            def fetch_range(days):
+                dates = [base_date - timedelta(days=i) for i in range(days)]
+                total_compliant = 0
+                total_non_compliant = 0
+                total_users = 0
+
+                # Run API calls in parallel for all days
+                with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+                    results = list(executor.map(fetch_day, dates))
+
+                for d in results:
+                    total_compliant += d["compliant"]
+                    total_non_compliant += d["non_compliant"]
+                    total_users = max(total_users, d["total_users"])  # keep the max employees seen
+
+                # average absolute counts per day
+                avg = {
+                    "compliant": total_compliant // days if days > 0 else 0,
+                    "non_compliant": total_non_compliant // days if days > 0 else 0,
+                    "total_users": total_users
+                }
+                return avg
+
+            week_data = fetch_range(7)
+            month_data = fetch_range(30)
+            three_month_data = fetch_range(90)
+            six_month_data = fetch_range(180)
 
         except Exception as e:
             print("API fetch failed:", e)
@@ -331,10 +377,15 @@ def leave_reports(request):
         "has_more": has_more,
         "has_previous": has_previous,
         "pagination": pagination,
-        "total_employees":total_employees,
+        "total_employees": total_employees,
         "non_compliant_users": non_compliant_users,
         "compliant_users": compliant_users,
+        "week_data": week_data,
+        "month_data": month_data,
+        "three_month_data": three_month_data,
+        "six_month_data": six_month_data,
     })
+
 
 
 # Level 2: Show list of users by role
