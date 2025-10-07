@@ -167,45 +167,6 @@ def pending_requests(request):
     requests = LeaveRequest.objects.filter(status='Pending').order_by('-applied_at')
     return render(request, "myapp/admin_page.html", {"requests": requests})
 
-# @login_required
-# def review_leave_request(request, leave_id):
-#     leave = get_object_or_404(LeaveRequest, id=leave_id)
-#
-#     # previous leaves of same type
-#     previous_leaves = LeaveRequest.objects.filter(
-#         user=leave.user,
-#         leave_type=leave.leave_type
-#     ).exclude(id=leave.id)
-#
-#     # remaining balance
-#     remaining_balance = calculate_leave_balance(leave.user, leave.leave_type)
-#
-#     if request.method == "POST":
-#         action = request.POST.get("action")
-#         review_reason = request.POST.get("review_reason")
-#
-#         if not review_reason:
-#             messages.error(request, "Please provide a reason.")
-#             return redirect("review_leave_request", leave_id=leave.id)
-#
-#         if action == "accept":
-#             leave.status = "Approved"
-#         elif action == "reject":
-#             leave.status = "Rejected"
-#
-#         leave.review_reason = review_reason
-#         leave.reviewed_by = request.user
-#         leave.save()
-#
-#         messages.success(request, f"Leave {action}ed successfully.")
-#         return redirect("dashboard")
-#
-#     return render(request, "myapp/review_leave_request.html", {
-#         "leave": leave,
-#         "previous_leaves": previous_leaves,
-#         "remaining_balance": remaining_balance,
-#     })
-
 
 @login_required
 def approve_leave(request, leave_id):
@@ -283,100 +244,78 @@ def set_leave_limits(request):
 
 # Level 1: Show links for Managers and Employees
 
+
+from .models import ComplianceRecord
+from .utils import fetch_and_store_compliance
+from django.core.paginator import Paginator
+
 @login_required
 def leave_reports(request):
     selected_date = request.GET.get("date")
     page = int(request.GET.get("page", 1))
     page_size = 20
 
-    users_from_api = []
+    users_from_db = []
     pagination = {}
-    has_more = False
-    has_previous = False
     total_employees = 0
-    non_compliant_users = 0
     compliant_users = 0
+    non_compliant_users = 0
 
-    # Aggregated ranges
-    week_data = {"compliant": 0, "non_compliant": 0}
-    month_data = {"compliant": 0, "non_compliant": 0}
-    three_month_data = {"compliant": 0, "non_compliant": 0}
-    six_month_data = {"compliant": 0, "non_compliant": 0}
+    week_data = month_data = three_month_data = six_month_data = {}
 
     if selected_date:
-        try:
-            base_date = datetime.strptime(selected_date, "%Y-%m-%d")
-            key = os.environ.get("SPARK_FINCH_KEY")
-            url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
-            headers = {"token": key}
+        base_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
 
-            # --- Helper: fetch API for a single date ---
-            def fetch_day(date):
-                params = {"date": date.strftime("%Y-%m-%d"), "page": page, "page_size": page_size}
-                r = requests.get(url, headers=headers, params=params)
-                if r.status_code == 200:
-                    d = r.json()
-                    return {
-                        "compliant": d.get("compliant_users", 0),
-                        "non_compliant": d.get("non_compliant_users", 0),
-                        "users": [item.get("email") for item in d.get("users", [])],
-                        "pagination": d.get("pagination", {}),
-                        "total_users": d.get("total_users", 0),
-                    }
-                return {"compliant": 0, "non_compliant": 0, "users": [], "pagination": {}, "total_users": 0}
+        # --- Fetch from DB, auto-fetch from API if missing ---
+        record = ComplianceRecord.objects.filter(date=base_date).first()
+        if not record:
+            # Fetch data for this date (or a range) from API and store
+            fetch_and_store_compliance(selected_date, selected_date)
+            record = ComplianceRecord.objects.filter(date=base_date).first()
 
-            # --- Today’s Report ---
-            today_data = fetch_day(base_date)
-            users_from_api = today_data["users"]
-            pagination = today_data["pagination"]
-            total_employees = today_data["total_users"]
-            compliant_users = today_data["compliant"]
-            non_compliant_users = today_data["non_compliant"]
+        if record:
+            users_list = record.users or []  # list of dicts {"id":..., "email":...}
+            total_employees = record.total_users
+            compliant_users = record.compliant_users
+            non_compliant_users = record.non_compliant_users
 
-            has_more = pagination.get("has_next", False)
-            has_previous = pagination.get("has_previous", False)
+            # --- Pagination using Django Paginator ---
+            paginator = Paginator(users_list, page_size)
+            page_obj = paginator.get_page(page)
+            users_from_db = [u["email"] for u in page_obj]  # only current page
 
-            # --- Aggregations ---
-            import concurrent.futures
+            pagination = {
+                "previous_page": page_obj.previous_page_number() if page_obj.has_previous() else None,
+                "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
+                "has_previous": page_obj.has_previous(),
+                "has_next": page_obj.has_next(),
+            }
 
-            def fetch_range(days):
-                dates = [base_date - timedelta(days=i) for i in range(days)]
-                total_compliant = 0
-                total_non_compliant = 0
-                total_users = 0
+        # --- Aggregations for chart (week/month/3month/6month) ---
+        def fetch_range(days):
+            start = base_date - timedelta(days=days-1)
+            records = ComplianceRecord.objects.filter(date__range=(start, base_date))
+            total_compliant = sum(r.compliant_users for r in records)
+            total_non_compliant = sum(r.non_compliant_users for r in records)
+            total_users_agg = max((r.total_users for r in records), default=0)
+            return {
+                "compliant": total_compliant // days if days else 0,
+                "non_compliant": total_non_compliant // days if days else 0,
+                "total_users": total_users_agg
+            }
 
-                # Run API calls in parallel for all days
-                with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-                    results = list(executor.map(fetch_day, dates))
-
-                for d in results:
-                    total_compliant += d["compliant"]
-                    total_non_compliant += d["non_compliant"]
-                    total_users = max(total_users, d["total_users"])  # keep the max employees seen
-
-                # average absolute counts per day
-                avg = {
-                    "compliant": total_compliant // days if days > 0 else 0,
-                    "non_compliant": total_non_compliant // days if days > 0 else 0,
-                    "total_users": total_users
-                }
-                return avg
-
-            week_data = fetch_range(7)
-            month_data = fetch_range(30)
-            three_month_data = fetch_range(90)
-            six_month_data = fetch_range(180)
-
-        except Exception as e:
-            print("API fetch failed:", e)
+        week_data = fetch_range(7)
+        month_data = fetch_range(30)
+        three_month_data = fetch_range(90)
+        six_month_data = fetch_range(180)
 
     return render(request, "myapp/view_reports.html", {
         "selected_date": selected_date,
-        "users_from_api": users_from_api,
+        "users_from_api": users_from_db,
         "page": page,
-        "has_more": has_more,
-        "has_previous": has_previous,
         "pagination": pagination,
+        "has_previous": pagination.get("has_previous", False),
+        "has_more": pagination.get("has_next", False),
         "total_employees": total_employees,
         "non_compliant_users": non_compliant_users,
         "compliant_users": compliant_users,

@@ -49,3 +49,46 @@ def get_project_manager(user, project):
     if project.lead == user:
         return None  # user is the project lead
     return project.lead
+
+
+import requests
+from datetime import datetime, timedelta
+from myapp.models import ComplianceRecord
+from django.db import transaction
+import os
+
+def fetch_and_store_compliance(start_date: str, end_date: str):
+    key = os.environ.get("SPARK_FINCH_KEY")
+    url = "https://aimanager.techjays.com/app/api/non-compliance/users/jaysone"
+
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    delta = (end - start).days + 1
+
+    for i in range(delta):
+        day = start + timedelta(days=i)
+        users = []
+        page = 1
+        while True:
+            params = {"date": day.strftime("%Y-%m-%d"), "page": page, "page_size": 1000}
+            r = requests.get(url, headers={"token": key}, params=params)
+            if r.status_code != 200:
+                break
+            data = r.json()
+            users.extend(data.get("users", []))
+            pagination = data.get("pagination", {})
+            if not pagination.get("has_next", False):
+                break
+            page += 1
+
+        with transaction.atomic():
+            ComplianceRecord.objects.update_or_create(
+                date=day,
+                defaults={
+                    "total_users": pagination.get("total_items", len(users)),
+                    "compliant_users": data.get("compliant_users", 0),
+                    "non_compliant_users": data.get("non_compliant_users", 0),
+                    "users": users,
+                    "pagination": pagination
+                }
+            )

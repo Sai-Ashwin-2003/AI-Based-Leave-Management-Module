@@ -111,3 +111,28 @@ class Notification(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+
+
+
+class ComplianceRecord(models.Model):
+    date = models.DateField(unique=True)
+    total_users = models.PositiveIntegerField(default=0)
+    compliant_users = models.PositiveIntegerField(default=0)
+    non_compliant_users = models.PositiveIntegerField(default=0)
+
+    # Stores all users with id & email
+    users = models.JSONField(default=list)  # MySQL 5.7+ compatible
+
+    # Pagination info from API
+    pagination = models.JSONField(default=dict)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Compliance {self.date}: {self.compliant_users}/{self.total_users}"
