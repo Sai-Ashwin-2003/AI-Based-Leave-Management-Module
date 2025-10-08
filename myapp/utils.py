@@ -85,7 +85,7 @@ def fetch_and_store_compliance(start_date: str, end_date: str):
             ComplianceRecord.objects.update_or_create(
                 date=day,
                 defaults={
-                    "total_users": pagination.get("total_items", len(users)),
+                    "total_users": data.get("total_users", 0),
                     "compliant_users": data.get("compliant_users", 0),
                     "non_compliant_users": data.get("non_compliant_users", 0),
                     "users": users,

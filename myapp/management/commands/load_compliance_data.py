@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         key = os.environ.get("SPARK_FINCH_KEY")
-        url = "https://ai-manager-6132686303.us-central1.run.app/app/api/non-compliance/users/jaysone"
+        url = "https://aimanager.techjays.com/app/api/non-compliance/users/jaysone"
         headers = {"token": key}
 
         today = datetime.today().date()

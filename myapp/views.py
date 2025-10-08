@@ -10,7 +10,7 @@ from django.views.decorators.cache import never_cache
 import json
 import requests
 from datetime import date, timedelta, datetime
-from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification
+from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification, UserData
 from .utils import calculate_leave_balance
 from dotenv import load_dotenv
 import os
@@ -325,6 +325,15 @@ def leave_reports(request):
         "six_month_data": six_month_data,
     })
 
+#Non compliance users list
+def user_list(request):
+    users = UserData.objects.all().order_by('email')
+    return render(request, 'myapp/user_non_compliance_list.html', {'users': users})
+
+#Non compliance users detail
+def user_detail(request, user_id):
+    user = get_object_or_404(UserData, user_id=user_id)
+    return render(request, 'myapp/user_non_compliance_detail.html', {'user': user})
 
 
 # Level 2: Show list of users by role

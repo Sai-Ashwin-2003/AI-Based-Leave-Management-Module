@@ -136,3 +136,14 @@ class ComplianceRecord(models.Model):
 
     def __str__(self):
         return f"Compliance {self.date}: {self.compliant_users}/{self.total_users}"
+
+
+
+
+class UserData(models.Model):
+    user_id = models.IntegerField(unique=True)
+    email = models.EmailField()
+    dates = models.JSONField(default=list, blank=True)
+
+    def __str__(self):
+        return self.email

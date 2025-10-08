@@ -1,0 +1,19 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+<div class="p-6">
+  <h2 class="text-2xl font-semibold text-gray-800 mb-6">User: {{ user.email }}</h2>
+
+  <h3 class="text-xl font-medium mb-3">Dates Appeared:</h3>
+  {% if user.dates %}
+    <ul class="list-disc ml-6 space-y-1">
+      {% for date in user.dates %}
+      <li>{{ date }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-500">No dates recorded.</p>
+  {% endif %}
+
+  <a href="{% url 'user_non_compliance_list' %}" class="inline-block mt-6 text-blue-600 hover:underline">← Back to Users</a>
+</div>
+{% endblock %}
