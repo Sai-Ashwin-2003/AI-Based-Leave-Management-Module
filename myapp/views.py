@@ -366,12 +366,12 @@ def user_report(request, user_id):
 def manager_dashboard(request):
     # Existing pending requests
     employees_under_manager = CustomUser.objects.filter(manager=request.user).distinct()
-    project_employees = CustomUser.objects.filter(projectmember__project__lead=request.user).distinct()
-    all_employees = (employees_under_manager | project_employees).distinct()
+    # project_employees = CustomUser.objects.filter(projectmember__project__lead=request.user).distinct()
+    # all_employees = (employees_under_manager | project_employees).distinct()
 
     pending_requests = LeaveRequest.objects.filter(
         status="Pending",
-        user__in=all_employees
+        user__in=employees_under_manager
     ).order_by("-applied_at")
 
     # Notifications
@@ -479,37 +479,38 @@ def manager_reject_leave(request, leave_id):
 
 @login_required
 def manager_reports(request):
-    # Direct employees under this manager
-    employees = CustomUser.objects.filter(manager=request.user, role="employee").distinct()
-
-    # 2️⃣ Employees from projects where current user is a lead
+    # Employees directly managed by this manager
+    direct_employees = CustomUser.objects.filter(
+        manager=request.user, role="employee"
+    )
+    # Employees from projects where this manager is the lead
     project_employees = CustomUser.objects.filter(
         projectmember__project__lead=request.user
-    ).distinct()
-
-    # 3️⃣ If this manager is a member in another project, include that project's lead’s employees
-    lead_projects = ProjectMember.objects.filter(user=request.user).values_list("project__lead", flat=True)
-    extra_employees = CustomUser.objects.filter(
-        projectmember__project__lead__in=lead_projects,
-        role="manager"
-    ).distinct()
-
-    # Combine all
-    all_employees = ( extra_employees | project_employees | employees).exclude(id=request.user.id).distinct()
+    )
 
     leave_types = LeaveType.objects.all()
-    report = []
+    def build_report(employee_queryset):
+        report_list = []
+        for emp in employee_queryset:
+            emp_data = {
+                "employee": emp,
+                "balances": {
+                    lt.name: calculate_leave_balance(emp, lt)
+                    for lt in leave_types
+                },
+            }
+            report_list.append(emp_data)
+        return report_list
 
-    for emp in all_employees:
-        emp_data = {
-            "employee": emp,
-            "balances": {
-                lt.name: calculate_leave_balance(emp, lt) for lt in leave_types
-            },
-        }
-        report.append(emp_data)
+    # Prepare two reports
+    direct_reports = build_report(direct_employees)
+    project_reports = build_report(project_employees)
 
-    return render(request, "myapp/manager_reports.html", {"reports": report})
+    context = {
+        "direct_reports": direct_reports,
+        "project_reports": project_reports,
+    }
+    return render(request, "myapp/manager_reports.html", context)
 
 @login_required
 def manager_leave_balance(request):

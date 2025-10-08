@@ -6,6 +6,7 @@
   <table class="w-full bg-white shadow-md rounded-lg overflow-hidden">
     <thead class="bg-gray-100">
       <tr>
+        <th class="px-4 py-2 text-left">S/No</th> <!-- Serial number -->
         <th class="px-4 py-2 text-left">ID</th>
         <th class="px-4 py-2 text-left">Email</th>
         <th class="px-4 py-2 text-left">Unreported Dates</th>
@@ -14,6 +15,7 @@
     <tbody>
       {% for user in users %}
       <tr class="border-b hover:bg-gray-50">
+        <td class="px-4 py-2">{{ forloop.counter }}</td> <!-- Serial number -->
         <td class="px-4 py-2">{{ user.user_id }}</td>
         <td class="px-4 py-2">{{ user.email }}</td>
         <td class="px-4 py-2">
@@ -22,9 +24,9 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="3" class="text-center py-4">No users found.</td></tr>
+      <tr><td colspan="4" class="text-center py-4">No users found.</td></tr>
       {% endfor %}
     </tbody>
-  </table>
+</table>
 </div>
 {% endblock %}
