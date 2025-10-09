@@ -543,20 +543,15 @@ def get_project_lead_for_user(user, project):
 
 # 🔹 Manager view: Leave Request Detail
 @login_required
+@login_required
 def manager_leave_request_detail(request, leave_id):
+    from .utils import get_leave_decision_with_ai
+
     leave = get_object_or_404(LeaveRequest, id=leave_id)
 
-    # Get employee’s projects
+    # 🔒 Authorization
     projects = ProjectMember.objects.filter(user=leave.user).select_related("project")
-
-    # Check if the manager is authorized for at least one project
-    authorized = False
-    for mem in projects:
-        if mem.project.lead == request.user:
-            authorized = True
-            break
-
-    # Also allow if the company-level manager matches
+    authorized = any(mem.project.lead == request.user for mem in projects)
     if leave.user.manager == request.user:
         authorized = True
 
@@ -564,34 +559,69 @@ def manager_leave_request_detail(request, leave_id):
         messages.error(request, "You are not authorized to view this request.")
         return redirect("manager_dashboard")
 
-    # Get leave balances of that employee
+    # 📊 Leave balances
     balances = LeaveBalance.objects.filter(user=leave.user).select_related("leave_type")
 
+    # 🧩 Prepare data summaries
+    projects_with_leads = []
+    project_status_summary = []
+    for mem in projects:
+        proj = mem.project
+        projects_with_leads.append({
+            "name": proj.name,
+            "status": proj.status,
+            "role": mem.role_in_project,
+        })
+        project_status_summary.append(f"{proj.name} ({proj.status})")
+
+    leave_balance_summary = ", ".join(
+        [f"{b.leave_type.name}: {b.remaining} days left" for b in balances]
+    )
+
+    previous_leaves_summary = "Employee has taken a few leaves earlier this quarter. Some were during active project phases."
+
+    # 🧠 Get AI suggestions
+    ai_suggestions = get_leave_decision_with_ai(
+        employee_name=leave.user.username,
+        leave_reason=leave.reason,
+        leave_type=leave.leave_type.name,
+        leave_start=leave.start_date,
+        leave_end=leave.end_date,
+        leave_balance=leave_balance_summary,
+        project_status=", ".join(project_status_summary),
+        previous_leaves_summary=previous_leaves_summary,
+    )
+
+    # 🎨 Render template
     return render(
         request,
         "myapp/manager_leave_request_detail.html",
-        {"leave": leave, "projects": projects, "balances": balances},
+        {
+            "leave": leave,
+            "projects": projects,
+            "balances": balances,
+            "ai_suggestions": ai_suggestions,
+        },
     )
 
 
-# 🔹 HR view: Leave Request Review
+
+# 🔹 HR view: Leave Request Review (AI-enhanced)
 @login_required
 def review_leave_request(request, leave_id):
+    from .utils import get_leave_decision_with_ai
+
     leave = get_object_or_404(LeaveRequest, id=leave_id)
 
-    # Only HR can access this
     if request.user.role != "hr":
         messages.error(request, "You are not authorized to review this request.")
         return redirect("dashboard")
 
-    # Get employee’s projects
     projects = ProjectMember.objects.filter(user=leave.user).select_related("project")
-
-    # Get leave balances of that employee
     balances = LeaveBalance.objects.filter(user=leave.user).select_related("leave_type")
 
-    # Annotate project manager for each project
     projects_with_leads = []
+    project_status_summary = []
     for mem in projects:
         proj = mem.project
         projects_with_leads.append({
@@ -600,12 +630,53 @@ def review_leave_request(request, leave_id):
             "status": proj.status,
             "role": mem.role_in_project
         })
+        project_status_summary.append(f"{proj.name} ({proj.status})")
+
+    leave_balance_summary = ", ".join(
+        [f"{b.leave_type.name}: {b.remaining} days left" for b in balances]
+    )
+
+    # Fetch past leaves for this employee (excluding current leave)
+    past_leaves = LeaveRequest.objects.filter(user=leave.user).exclude(id=leave.id).order_by('-applied_at')
+
+    # Build summary string
+    previous_leaves_summary = ""
+    for l in past_leaves:
+        reviewer = l.reviewed_by.username if l.reviewed_by else "N/A"
+        review_reason = l.review_reason if l.review_reason else "N/A"
+        previous_leaves_summary += (
+            f"Leave Type: {l.leave_type.name}, Status: {l.status}, "
+            f"Reason: {l.reason}, Start: {l.start_date}, End: {l.end_date}, "
+            f"Reviewed By: {reviewer}, Review Reason: {review_reason}\n"
+        )
+
+    # If no past leaves, show default message
+    if not previous_leaves_summary:
+        previous_leaves_summary = "No previous leave records."
+
+    ai_suggestions = get_leave_decision_with_ai(
+        employee_name=leave.user.username,
+        leave_reason=leave.reason,
+        leave_type=leave.leave_type.name,
+        leave_start=leave.start_date,
+        leave_end=leave.end_date,
+        leave_balance=leave_balance_summary,
+        project_status=", ".join(project_status_summary),
+        previous_leaves_summary=previous_leaves_summary,
+    )
 
     return render(
         request,
         "myapp/review_leave_request.html",
-        {"leave": leave, "projects": projects_with_leads, "balances": balances},
+        {
+            "leave": leave,
+            "projects": projects_with_leads,
+            "balances": balances,
+            "ai_suggestions": ai_suggestions,
+        },
     )
+
+
 
 
 
@@ -646,3 +717,38 @@ def notify_team_leads(request, leave_id):
         return redirect("review_leave_request", leave_id=leave.id)
     else:
         return redirect("manager_leave_request_detail", leave_id=leave.id)
+
+
+
+#MOCK_API
+
+
+# 🔹 1️⃣ View to list all users
+@login_required
+def mock_user_list(request):
+    employees = CustomUser.objects.filter(role='employee').select_related('manager')
+    managers = CustomUser.objects.filter(role='manager').select_related('manager')
+    return render(request, "myapp/mock_user_list.html", {
+        "employees": employees,
+        "managers": managers,
+    })
+
+
+# 🔹 2️⃣ View to show details of a specific user
+@login_required
+def mock_user_detail(request, user_id):
+    user = get_object_or_404(CustomUser, id=user_id)
+    projects = ProjectMember.objects.filter(user=user).select_related('project', 'project__lead')
+    leave_requests = LeaveRequest.objects.filter(user=user).select_related('leave_type')
+    leave_balances = LeaveBalance.objects.filter(user=user).select_related('leave_type')
+
+    context = {
+        "user_obj": user,
+        "manager": user.manager,
+        "projects": projects,
+        "leave_requests": leave_requests,
+        "leave_balances": leave_balances,
+    }
+    return render(request, "myapp/mock_user_detail.html", context)
+
+

@@ -1,0 +1,88 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+
+<a href="{% url 'mock_user_list' %}" class="text-blue-600 hover:underline">&larr; Back to User List</a>
+
+<div class="bg-white shadow-md rounded-lg p-6 mt-4">
+  <h2 class="text-2xl font-bold text-gray-800 mb-4">{{ user_obj.username }} ({{ user_obj.get_role_display }})</h2>
+  <p><strong>Designation:</strong> {{ user_obj.designation|default:"-" }}</p>
+  <p><strong>Manager:</strong> {{ manager.username|default:"-" }}</p>
+</div>
+
+<!-- Projects -->
+<div class="bg-white shadow-md rounded-lg p-6 mt-6">
+  <h3 class="text-xl font-semibold text-green-700 mb-3">Projects</h3>
+  {% if projects %}
+  <ul class="list-disc ml-6 space-y-2">
+    {% for p in projects %}
+    <li>
+      <strong>{{ p.project.name }}</strong> - {{ p.role_in_project|default:"Member" }} <br>
+      Lead: {{ p.project.lead.username|default:"-" }} | Status: {{ p.project.status }} <br>
+      <small>{{ p.project.description|default:"No description" }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No projects assigned.</p>
+  {% endif %}
+</div>
+
+<!-- Leave Requests -->
+<div class="bg-white shadow-md rounded-lg p-6 mt-6">
+  <h3 class="text-xl font-semibold text-yellow-700 mb-3">Leave History</h3>
+  {% if leave_requests %}
+  <table class="min-w-full text-sm border">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-3 py-2 border">Leave Type</th>
+        <th class="px-3 py-2 border">Start</th>
+        <th class="px-3 py-2 border">End</th>
+        <th class="px-3 py-2 border">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for leave in leave_requests %}
+      <tr>
+        <td class="border px-3 py-2">{{ leave.leave_type.name }}</td>
+        <td class="border px-3 py-2">{{ leave.start_date }}</td>
+        <td class="border px-3 py-2">{{ leave.end_date }}</td>
+        <td class="border px-3 py-2">{{ leave.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No leave requests found.</p>
+  {% endif %}
+</div>
+
+<!-- Leave Balances -->
+<div class="bg-white shadow-md rounded-lg p-6 mt-6">
+  <h3 class="text-xl font-semibold text-purple-700 mb-3">Leave Balances</h3>
+  {% if leave_balances %}
+  <table class="min-w-full text-sm border">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-3 py-2 border">Leave Type</th>
+        <th class="px-3 py-2 border">Total</th>
+        <th class="px-3 py-2 border">Used</th>
+        <th class="px-3 py-2 border">Remaining</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for balance in leave_balances %}
+      <tr>
+        <td class="border px-3 py-2">{{ balance.leave_type.name }}</td>
+        <td class="border px-3 py-2">{{ balance.total }}</td>
+        <td class="border px-3 py-2">{{ balance.used }}</td>
+        <td class="border px-3 py-2">{{ balance.remaining }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No leave balance data available.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

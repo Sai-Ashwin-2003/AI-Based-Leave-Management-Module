@@ -72,6 +72,14 @@
   {% endif %}
 </div>
 
+<div class="bg-white shadow-md rounded-lg p-6 mb-0">
+  <h2 class="text-lg font-semibold text-gray-800 mb-0">AI Suggestions</h2>
+  <div class="text-gray-700 whitespace-pre-line leading-relaxed">
+    {{ ai_suggestions }}
+  </div>
+</div>
+
+
 <div class="mt-4 flex gap-4">
   <a href="{% url 'approve_leave' leave.id %}"
      class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Approve</a>

@@ -1,5 +1,4 @@
 #utils.py
-
 from .models import LeaveBalance, LeaveRequest
 
 def calculate_leave_balance(user, leave_type):
@@ -92,3 +91,63 @@ def fetch_and_store_compliance(start_date: str, end_date: str):
                     "pagination": pagination
                 }
             )
+
+
+import google.generativeai as genai
+from django.conf import settings
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+def get_leave_decision_with_ai(
+    employee_name,
+    leave_reason,
+    leave_type,
+    leave_start,
+    leave_end,
+    leave_balance,
+    project_status,
+    previous_leaves_summary,
+):
+    """
+    Generate AI suggestions for HR or Manager.
+    role='hr' -> focus on leave policy, fairness, and leave trends
+    role='manager' -> focus on project impact, team workload, deadlines
+    """
+
+    # Base instruction
+    base_instruction = (
+        "You are an AI assistant helping a {role} make leave decisions. "
+        "Provide 3–4 short, concise bullet points that summarize key insights "
+        "relevant to the role. Do NOT approve or reject the leave."
+    )
+
+    context = f"""
+        Employee Name: {employee_name}
+        Leave Type: {leave_type}
+        Leave Reason: {leave_reason}
+        Leave Duration: {leave_start} to {leave_end}
+        Leave Balance: {leave_balance}
+        Employee Projects & Status: {project_status}
+        Previous Leave Summary: {previous_leaves_summary}
+        """
+
+    # Full prompt
+    prompt = f"""
+{base_instruction}
+
+Here is the information:
+
+{context}
+
+Example output:
+• Employee has sufficient leave balance.
+• Recent leave applied for reason from start date to end date was reviewed by manager1@techjays.com and rejected with the previous_leaves_summary.reason
+• Past leaves were mostly for valid reasons.
+• Consider task coverage during absence.
+"""
+
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        return response.text.strip() if response and response.text else "No AI suggestions available."
+    except Exception as e:
+        return f"Error generating AI suggestions: {e}"

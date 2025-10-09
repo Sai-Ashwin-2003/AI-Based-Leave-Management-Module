@@ -24,6 +24,8 @@ urlpatterns = [
     path("admin_page/reports/user/<int:user_id>/", views.user_report, name="user_report"),
     path("users/", views.user_list, name="user_non_compliance_list"),
     path("users/<int:user_id>/", views.user_detail, name="user_non_compliance_detail"),
+    path("Users/", views.mock_user_list, name="mock_user_list"),
+    path("Users/<int:user_id>/", views.mock_user_detail, name="mock_user_detail"),
 
     # Manager routes
     path('manager/', views.manager_dashboard, name='manager_dashboard'),

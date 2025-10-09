@@ -1,0 +1,66 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">All Employees & Managers</h2>
+
+
+<!-- ✅ MANAGERS TABLE -->
+<h3 class="text-xl font-semibold text-green-700 mb-2">Managers</h3>
+<table class="min-w-full text-sm border shadow-md bg-white rounded-lg  mb-10">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="px-4 py-2 border text-left">Name</th>
+      <th class="px-4 py-2 border text-left">Designation</th>
+      <th class="px-4 py-2 border text-left">Direct Manager</th>
+      <th class="px-4 py-2 border text-center">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in managers %}
+    <tr class="hover:bg-gray-50">
+      <td class="border px-4 py-2">{{ user.username }}</td>
+      <td class="border px-4 py-2">{{ user.designation|default:"-" }}</td>
+      <td class="border px-4 py-2">{{ user.manager.username|default:"-" }}</td>
+      <td class="border px-4 py-2 text-center">
+        <a href="{% url 'mock_user_detail' user.id %}" class="text-blue-600 hover:underline">View</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4" class="text-center py-3 text-gray-500">No managers found.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+
+<!-- ✅ EMPLOYEES TABLE -->
+<h3 class="text-xl font-semibold text-blue-700 mb-2">Employees</h3>
+<table class="min-w-full text-sm border shadow-md bg-white rounded-lg">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="px-4 py-2 border text-left">Name</th>
+      <th class="px-4 py-2 border text-left">Designation</th>
+      <th class="px-4 py-2 border text-left">Manager</th>
+      <th class="px-4 py-2 border text-center">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in employees %}
+    <tr class="hover:bg-gray-50">
+      <td class="border px-4 py-2">{{ user.username }}</td>
+      <td class="border px-4 py-2">{{ user.designation|default:"-" }}</td>
+      <td class="border px-4 py-2">{{ user.manager.username|default:"-" }}</td>
+      <td class="border px-4 py-2 text-center">
+        <a href="{% url 'mock_user_detail' user.id %}" class="text-blue-600 hover:underline">View</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4" class="text-center py-3 text-gray-500">No employees found.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
