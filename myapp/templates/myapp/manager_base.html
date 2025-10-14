@@ -8,18 +8,18 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<body class="bg-gray-100 flex h-screen">
+<body class="flex bg-gray-50 min-h-screen text-gray-800">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-blue-600 text-white p-6 flex-shrink-0">
+  <aside class="w-64 bg-gray-200 text-gray-600 p-6 shadow-md flex flex-col">
     <h1 class="text-2xl font-bold mb-6">Manager</h1>
     <nav class="space-y-3">
-      <a href="{% url 'manager_dashboard' %}" class="block px-3 py-2 rounded hover:bg-blue-500">Dashboard</a>
-      <a href="{% url 'manager_apply_leave' %}" class="block px-3 py-2 rounded hover:bg-blue-500">Apply Leave</a>
-      <a href="{% url 'manager_view_requests' %}" class="block px-3 py-2 rounded hover:bg-blue-500">Leave Requests</a>
-      <a href="{% url 'manager_reports' %}" class="block px-3 py-2 rounded hover:bg-blue-500">Reports</a>
-        <a href="{% url 'manager_leave_balance' %}" class="block px-3 py-2 rounded hover:bg-blue-500">Leave Balance</a>
-        <a href="{% url 'logout' %}" class="block p-2 rounded hover:bg-indigo-600">Logout</a>
+      <a href="{% url 'manager_dashboard' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Dashboard</a>
+      <a href="{% url 'manager_apply_leave' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Apply Leave</a>
+      <a href="{% url 'manager_view_requests' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Leave Requests</a>
+      <a href="{% url 'manager_reports' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Reports</a>
+        <a href="{% url 'manager_leave_balance' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Leave Balance</a>
+        <a href="{% url 'logout' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Logout</a>
 
     </nav>
   </aside>

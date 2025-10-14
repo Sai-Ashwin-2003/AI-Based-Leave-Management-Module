@@ -1,0 +1,164 @@
+{% extends 'myapp/base_admin.html' %}
+{% block content %}
+<div class="p-6">
+
+  <!-- 🔗 Redirect Link -->
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">Spark Finch Users</h2>
+
+<!-- Top Row: Managers & Employees -->
+<div class="grid grid-cols-2 gap-6 mb-6">
+  <div class="bg-white shadow-md rounded-lg p-6 text-center">
+    <a href="{% url 'user_non_compliance_list' %}"
+       class="block text-indigo-600 hover:underline font-semibold text-lg">
+       Non-Compliance Users
+    </a>
+  </div>
+</div>
+
+  <!-- Second Row: Calendar + Data | Chart -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Left: Calendar + Data -->
+    <div class="bg-white shadow-md rounded-lg p-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-6">Non-Compliance Summary by Date</h2>
+
+      <!-- Date Selector -->
+      <form method="get" action="" class="flex flex-wrap items-center gap-3 mb-6">
+        <div>
+          <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Select Date:</label>
+          <input type="date" id="date" name="date" value="{{ selected_date }}"
+            class="border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 sm:text-sm">
+        </div>
+        <div class="pt-6">
+          <button type="submit"
+            class="bg-indigo-600 text-white px-5 py-2 rounded-md shadow hover:bg-indigo-700 transition text-sm font-medium">
+            Fetch
+          </button>
+        </div>
+      </form>
+
+      {% if selected_date %}
+        <!-- Summary -->
+        <div class="grid grid-cols-3 text-center mb-6">
+          <div class="p-3 bg-gray-50 rounded-md shadow-sm">
+            <p class="text-gray-600 text-sm">Total</p>
+            <p class="font-semibold text-lg">{{ total_employees }}</p>
+          </div>
+          <div class="p-3 bg-green-50 rounded-md shadow-sm">
+            <p class="text-gray-600 text-sm">Compliant</p>
+            <p class="font-semibold text-green-600 text-lg">{{ compliant_users }}</p>
+          </div>
+          <div class="p-3 bg-red-50 rounded-md shadow-sm">
+            <p class="text-gray-600 text-sm">Non-Compliant</p>
+            <p class="font-semibold text-red-600 text-lg">{{ non_compliant_users }}</p>
+          </div>
+        </div>
+
+        <!-- List of Users -->
+        <div class="space-y-3">
+          {% for email in users_from_api %}
+            <div class="p-3 border rounded-md bg-gray-50 shadow-sm flex items-center justify-between">
+              <span class="text-gray-800">{{ email }}</span>
+            </div>
+          {% empty %}
+            <p class="text-gray-500 text-center">No users found.</p>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-6 flex gap-3 justify-center">
+          {% if has_previous %}
+            <a href="?date={{ selected_date }}&page={{ pagination.previous_page }}"
+               class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
+              Previous
+            </a>
+          {% endif %}
+
+          {% if has_more %}
+            <a href="?date={{ selected_date }}&page={{ pagination.next_page }}"
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">
+              Next
+            </a>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="text-gray-500">Select a date from the calendar to view reports.</p>
+      {% endif %}
+    </div>
+
+    <!-- Right: Doughnut Chart -->
+    <div class="bg-white shadow-md rounded-lg p-6 flex flex-col items-center">
+      <h3 class="text-lg font-semibold mb-4 text-gray-800">Compliance Overview Chart</h3>
+
+      {% if selected_date %}
+        <!-- Chart Container -->
+        <div class="w-1/2 mb-4">
+          <canvas id="complianceChart"></canvas>
+        </div>
+
+        <!-- Range Dropdown -->
+        <div class="mt-2">
+          <label for="rangeSelect" class="text-sm text-gray-700 mr-2">Select Range:</label>
+          <select id="rangeSelect" onchange="updateChart(this.value)"
+            class="border border-gray-300 rounded-md px-3 py-1 text-sm shadow-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500">
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+            <option value="3month">3 Months</option>
+            <option value="6month">6 Months</option>
+          </select>
+        </div>
+      {% else %}
+        <p class="text-gray-500 text-center mt-6">Select a date from the calendar to view compliance data.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  {% if selected_date %}
+  const dataSets = {
+    week: {
+      compliant: {{ week_data.compliant|default:0 }},
+      nonCompliant: {{ week_data.non_compliant|default:0 }}
+    },
+    month: {
+      compliant: {{ month_data.compliant|default:0 }},
+      nonCompliant: {{ month_data.non_compliant|default:0 }}
+    },
+    "3month": {
+      compliant: {{ three_month_data.compliant|default:0 }},
+      nonCompliant: {{ three_month_data.non_compliant|default:0 }}
+    },
+    "6month": {
+      compliant: {{ six_month_data.compliant|default:0 }},
+      nonCompliant: {{ six_month_data.non_compliant|default:0 }}
+    }
+  };
+
+  const ctx = document.getElementById('complianceChart').getContext('2d');
+  let complianceChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Compliant', 'Non-Compliant'],
+      datasets: [{
+        data: [dataSets.week.compliant, dataSets.week.nonCompliant],
+        backgroundColor: ['#16a34a', '#dc2626']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  function updateChart(range) {
+    complianceChart.data.datasets[0].data = [
+      dataSets[range].compliant,
+      dataSets[range].nonCompliant
+    ];
+    complianceChart.update();
+  }
+  {% endif %}
+</script>
+{% endblock %}

@@ -8,15 +8,15 @@
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
 </head>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<body class="flex bg-gray-100 min-h-screen">
+<body class="flex bg-gray-50 min-h-screen text-gray-800">
   <!-- Sidebar -->
-  <aside class="w-64 bg-indigo-700 text-white p-6">
+  <aside class="w-64 bg-gray-200 text-gray-600 p-6 shadow-md flex flex-col">
     <h2 class="text-xl font-bold mb-6">Employee Panel</h2>
     <nav class="space-y-4">
-      <a href="{% url 'apply_leave' %}" class="block p-2 rounded hover:bg-indigo-600">Apply Leave</a>
-      <a href="{% url 'view_requests' %}" class="block p-2 rounded hover:bg-indigo-600">View Requests</a>
-      <a href="{% url 'view_balance' %}" class="block p-2 rounded hover:bg-indigo-600">Leave Balance</a>
-        <a href="{% url 'logout' %}" class="block p-2 rounded hover:bg-indigo-600">Logout</a>
+      <a href="{% url 'apply_leave' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Apply Leave</a>
+      <a href="{% url 'view_requests' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">View Requests</a>
+      <a href="{% url 'view_balance' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Leave Balance</a>
+        <a href="{% url 'logout' %}" class="block px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Logout</a>
     </nav>
   </aside>
 

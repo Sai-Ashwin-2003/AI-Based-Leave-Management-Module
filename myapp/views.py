@@ -251,79 +251,7 @@ from django.core.paginator import Paginator
 
 @login_required
 def leave_reports(request):
-    selected_date = request.GET.get("date")
-    page = int(request.GET.get("page", 1))
-    page_size = 20
-
-    users_from_db = []
-    pagination = {}
-    total_employees = 0
-    compliant_users = 0
-    non_compliant_users = 0
-
-    week_data = month_data = three_month_data = six_month_data = {}
-
-    if selected_date:
-        base_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-
-        # --- Fetch from DB, auto-fetch from API if missing ---
-        record = ComplianceRecord.objects.filter(date=base_date).first()
-        if not record:
-            # Fetch data for this date (or a range) from API and store
-            fetch_and_store_compliance(selected_date, selected_date)
-            record = ComplianceRecord.objects.filter(date=base_date).first()
-
-        if record:
-            users_list = record.users or []  # list of dicts {"id":..., "email":...}
-            total_employees = record.total_users
-            compliant_users = record.compliant_users
-            non_compliant_users = record.non_compliant_users
-
-            # --- Pagination using Django Paginator ---
-            paginator = Paginator(users_list, page_size)
-            page_obj = paginator.get_page(page)
-            users_from_db = [u["email"] for u in page_obj]  # only current page
-
-            pagination = {
-                "previous_page": page_obj.previous_page_number() if page_obj.has_previous() else None,
-                "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
-                "has_previous": page_obj.has_previous(),
-                "has_next": page_obj.has_next(),
-            }
-
-        # --- Aggregations for chart (week/month/3month/6month) ---
-        def fetch_range(days):
-            start = base_date - timedelta(days=days-1)
-            records = ComplianceRecord.objects.filter(date__range=(start, base_date))
-            total_compliant = sum(r.compliant_users for r in records)
-            total_non_compliant = sum(r.non_compliant_users for r in records)
-            total_users_agg = max((r.total_users for r in records), default=0)
-            return {
-                "compliant": total_compliant // days if days else 0,
-                "non_compliant": total_non_compliant // days if days else 0,
-                "total_users": total_users_agg
-            }
-
-        week_data = fetch_range(7)
-        month_data = fetch_range(30)
-        three_month_data = fetch_range(90)
-        six_month_data = fetch_range(180)
-
-    return render(request, "myapp/view_reports.html", {
-        "selected_date": selected_date,
-        "users_from_api": users_from_db,
-        "page": page,
-        "pagination": pagination,
-        "has_previous": pagination.get("has_previous", False),
-        "has_more": pagination.get("has_next", False),
-        "total_employees": total_employees,
-        "non_compliant_users": non_compliant_users,
-        "compliant_users": compliant_users,
-        "week_data": week_data,
-        "month_data": month_data,
-        "three_month_data": three_month_data,
-        "six_month_data": six_month_data,
-    })
+    return render(request, "myapp/view_reports.html")
 
 #Non compliance users list
 def user_list(request):
@@ -333,7 +261,8 @@ def user_list(request):
 #Non compliance users detail
 def user_detail(request, user_id):
     user = get_object_or_404(UserData, user_id=user_id)
-    return render(request, 'myapp/user_non_compliance_detail.html', {'user': user})
+    leave_dates_json = json.dumps(user.dates)
+    return render(request, 'myapp/user_non_compliance_detail.html', {'user': user,"leave_dates_json": leave_dates_json})
 
 
 # Level 2: Show list of users by role
@@ -376,10 +305,12 @@ def manager_dashboard(request):
 
     # Notifications
     notifications = request.user.notifications.filter(is_read=False).order_by("-created_at")
-
+    notifications_list = list(notifications)
+    # Mark all notifications as read (or delete if you prefer)
+    notifications.update(is_read=True)  # OR notifications.delete() to remove completely
     return render(request, "myapp/manager_dashboard.html", {
         "pending_requests": pending_requests,
-        "notifications": notifications
+        "notifications": notifications_list
     })
 
 @login_required
@@ -542,7 +473,6 @@ def get_project_lead_for_user(user, project):
 
 
 # 🔹 Manager view: Leave Request Detail
-@login_required
 @login_required
 def manager_leave_request_detail(request, leave_id):
     from .utils import get_leave_decision_with_ai
@@ -752,3 +682,75 @@ def mock_user_detail(request, user_id):
     return render(request, "myapp/mock_user_detail.html", context)
 
 
+@login_required
+def spark_finch_users(request):
+    selected_date = request.GET.get("date")
+    page = int(request.GET.get("page", 1))
+    page_size = 20
+
+    users_from_db = []
+    pagination = {}
+    total_employees = compliant_users = non_compliant_users = 0
+
+    week_data = month_data = three_month_data = six_month_data = {}
+
+    if selected_date:
+        base_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+
+        # Fetch from DB, auto-fetch from API if missing
+        record = ComplianceRecord.objects.filter(date=base_date).first()
+        if not record:
+            fetch_and_store_compliance(selected_date, selected_date)
+            record = ComplianceRecord.objects.filter(date=base_date).first()
+
+        if record:
+            users_list = record.users or []
+            total_employees = record.total_users
+            compliant_users = record.compliant_users
+            non_compliant_users = record.non_compliant_users
+
+            # Pagination
+            paginator = Paginator(users_list, page_size)
+            page_obj = paginator.get_page(page)
+            users_from_db = [u["email"] for u in page_obj]
+
+            pagination = {
+                "previous_page": page_obj.previous_page_number() if page_obj.has_previous() else None,
+                "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
+                "has_previous": page_obj.has_previous(),
+                "has_next": page_obj.has_next(),
+            }
+
+        # Chart aggregations
+        def fetch_range(days):
+            start = base_date - timedelta(days=days - 1)
+            records = ComplianceRecord.objects.filter(date__range=(start, base_date))
+            total_compliant = sum(r.compliant_users for r in records)
+            total_non_compliant = sum(r.non_compliant_users for r in records)
+            total_users_agg = max((r.total_users for r in records), default=0)
+            return {
+                "compliant": total_compliant // days if days else 0,
+                "non_compliant": total_non_compliant // days if days else 0,
+                "total_users": total_users_agg,
+            }
+
+        week_data = fetch_range(7)
+        month_data = fetch_range(30)
+        three_month_data = fetch_range(90)
+        six_month_data = fetch_range(180)
+
+    return render(request, "myapp/spark_finch_users.html", {
+        "selected_date": selected_date,
+        "users_from_api": users_from_db,
+        "page": page,
+        "pagination": pagination,
+        "has_previous": pagination.get("has_previous", False),
+        "has_more": pagination.get("has_next", False),
+        "total_employees": total_employees,
+        "non_compliant_users": non_compliant_users,
+        "compliant_users": compliant_users,
+        "week_data": week_data,
+        "month_data": month_data,
+        "three_month_data": three_month_data,
+        "six_month_data": six_month_data,
+    })

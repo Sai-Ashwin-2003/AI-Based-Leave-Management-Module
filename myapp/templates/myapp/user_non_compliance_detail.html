@@ -1,19 +1,43 @@
 {% extends 'myapp/base_admin.html' %}
 {% block content %}
 <div class="p-6">
-  <h2 class="text-2xl font-semibold text-gray-800 mb-6">User: {{ user.email }}</h2>
+  <!-- User Header -->
+  <h2 class="text-2xl font-semibold text-gray-800 mb-6">
+    User: {{ user.email }}
+  </h2>
 
-  <h3 class="text-xl font-medium mb-3">Dates Appeared:</h3>
-  {% if user.dates %}
-    <ul class="list-disc ml-6 space-y-1">
-      {% for date in user.dates %}
-      <li>{{ date }}</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-gray-500">No dates recorded.</p>
-  {% endif %}
-
-  <a href="{% url 'user_non_compliance_list' %}" class="inline-block mt-6 text-blue-600 hover:underline">← Back to Users</a>
+  <!-- Calendar Section -->
+  <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+    <h3 class="text-xl font-medium text-gray-800 mb-4">Non-Compliance Calendar</h3>
+    <div id="leave_calendar" class="flatpickr-calendar w-full"></div>
+  </div>
 </div>
+
+<!-- Include Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<!-- Calendar Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the leave/non-compliance dates from Django context
+    var leaveDates = JSON.parse('{{ leave_dates_json|escapejs }}');
+
+    flatpickr("#leave_calendar", {
+        inline: true,
+        dateFormat: "Y-m-d",
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+            var dateStr = dayElem.dateObj.getFullYear() + '-' +
+                          String(dayElem.dateObj.getMonth() + 1).padStart(2, '0') + '-' +
+                          String(dayElem.dateObj.getDate()).padStart(2, '0');
+
+            if (leaveDates.includes(dateStr)) {
+                dayElem.style.backgroundColor = "red";
+                dayElem.style.color = "white";
+                dayElem.style.borderRadius = "50%";
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

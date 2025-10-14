@@ -22,6 +22,7 @@ urlpatterns = [
     path("admin_page/reports/", views.leave_reports, name="view_reports"),
     path("admin_page/reports/role/<str:role>/", views.list_users, name="list_users"),
     path("admin_page/reports/user/<int:user_id>/", views.user_report, name="user_report"),
+    path("admin_page/spark_finch_users/", views.spark_finch_users, name="spark_finch_users"),
     path("users/", views.user_list, name="user_non_compliance_list"),
     path("users/<int:user_id>/", views.user_detail, name="user_non_compliance_detail"),
     path("Users/", views.mock_user_list, name="mock_user_list"),
