@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from django.contrib.auth import authenticate, login, get_user_model, logout
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
@@ -11,7 +11,7 @@ import json
 import requests
 from datetime import date, timedelta, datetime
 from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification, UserData
-from .utils import calculate_leave_balance
+from .utils import calculate_leave_balance, chat_with_ai
 from dotenv import load_dotenv
 import os
 
@@ -754,3 +754,44 @@ def spark_finch_users(request):
         "three_month_data": three_month_data,
         "six_month_data": six_month_data,
     })
+
+def get_employee_context(user):
+    team_leaves = LeaveRequest.objects.filter(user__team=user.team).values()
+    return list(team_leaves)
+
+
+def get_manager_apply_leave_context(user):
+    team_members = user.projectmember_set.values_list('member', flat=True)
+    team_leaves = LeaveRequest.objects.filter(user__in=team_members).values()
+    return list(team_leaves)
+
+
+def get_manager_reports_context(user):
+    direct = CustomUser.objects.filter(manager=user)
+    project = CustomUser.objects.filter(projectmember__project__lead=user)
+    all_related = direct.union(project)
+    leaves = LeaveRequest.objects.filter(user__in=all_related).values()
+    return list(leaves)
+
+
+def get_admin_reports_context(user):
+    all_leaves = LeaveRequest.objects.all().values()
+    return list(all_leaves)
+
+
+@login_required
+def chat_bot(request):
+    role = request.user.role
+    message = request.POST.get("message")
+
+    if role == "employee":
+        context = get_employee_context(request.user)
+    elif role == "manager" and request.path == "/manager/apply-leave/":
+        context = get_manager_apply_leave_context(request.user)
+    elif role == "manager" and request.path == "/manager/reports/":
+        context = get_manager_reports_context(request.user)
+    else:  # admin
+        context = get_admin_reports_context(request.user)
+
+    ai_response = chat_with_ai(message, context)
+    return JsonResponse({"response": ai_response})

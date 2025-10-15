@@ -1,5 +1,6 @@
 {% extends 'myapp/base_dashboard.html' %}
 {% block content %}
+{% include 'myapp/chatbot.html' %}
     {% if messages %}
   <div id="messages-container" class="fixed top-4 right-4 z-50 space-y-2">
     {% for message in messages %}

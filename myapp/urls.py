@@ -39,5 +39,6 @@ urlpatterns = [
     path('manager/balance/', views.manager_leave_balance, name='manager_leave_balance'),
 
     path('Notify/<int:leave_id>', views.notify_team_leads, name='notify_team_leads'),
+    path("chat/", views.chat_bot, name="chat"),
 
 ]

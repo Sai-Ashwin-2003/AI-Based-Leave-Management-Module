@@ -151,3 +151,31 @@ Example output:
         return response.text.strip() if response and response.text else "No AI suggestions available."
     except Exception as e:
         return f"Error generating AI suggestions: {e}"
+
+
+def chat_with_ai(prompt, context_data):
+    full_prompt = f"""
+    You are an HR assistant AI. 
+    You have access only to the following leave data:
+
+    {context_data}
+
+    Instructions:
+    - If the user's question relates to the data above, answer using that information.
+    - Keep your reply natural, like a human would speak.
+    - Do not use bullet points, lists, or tables.
+    - Limit your reply to 20 lines.
+    - If the user's question is unrelated to the above data, reply as a friendly AI, conversationally.
+
+    User's question:
+    {prompt}
+    """
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(full_prompt)
+
+        ai_text=response.text
+        print(context_data)
+        return ai_text.strip() if ai_text else "No AI suggestions available."
+    except Exception as e:
+        return f"Error generating AI suggestions: {e}"

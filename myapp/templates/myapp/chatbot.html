@@ -1,0 +1,75 @@
+<!-- AI Chatbot Popup -->
+<div id="ai-chatbot" class="fixed bottom-6 right-6 z-50">
+  <!-- Chat Toggle Button -->
+  <button id="chat-toggle"
+    class="bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 focus:outline-none">
+    💬
+  </button>
+
+  <!-- Chat Window -->
+  <div id="chat-window" class="hidden bg-white w-80 h-96 rounded-lg shadow-lg flex flex-col">
+    <div class="bg-indigo-600 text-white p-3 rounded-t-lg font-semibold">
+      AI Assistant
+      <button id="chat-close" class="float-right text-white">✖</button>
+    </div>
+
+    <div id="chat-messages" class="flex-1 p-3 overflow-y-auto text-sm space-y-2"></div>
+
+    <div class="p-2 border-t flex">
+      <input id="chat-input" type="text"
+        class="flex-1 border rounded-l p-2 text-sm focus:outline-none"
+        placeholder="Ask me anything..." />
+      <button id="chat-send"
+        class="bg-indigo-600 text-white px-3 rounded-r hover:bg-indigo-700">
+        ➤
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const toggleBtn = document.getElementById("chat-toggle");
+  const chatWindow = document.getElementById("chat-window");
+  const closeBtn = document.getElementById("chat-close");
+  const sendBtn = document.getElementById("chat-send");
+  const input = document.getElementById("chat-input");
+  const messagesDiv = document.getElementById("chat-messages");
+
+  toggleBtn.onclick = () => chatWindow.classList.toggle("hidden");
+  closeBtn.onclick = () => chatWindow.classList.add("hidden");
+
+  async function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+
+    const userMessage = document.createElement("div");
+    userMessage.className = "text-right text-sm text-gray-800";
+    userMessage.textContent = message;
+    messagesDiv.appendChild(userMessage);
+
+    input.value = "";
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const role = "{{ user.role }}"; // dynamic role-based access
+    const response = await fetch("{% url 'chat' %}", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-CSRFToken": "{{ csrf_token }}"
+  },
+  body: JSON.stringify({ message, role })
+});
+
+const data = await response.json();
+const botMessage = document.createElement("div");
+botMessage.className = "text-left text-sm text-indigo-700";
+botMessage.textContent = data.response;  // <-- corrected
+messagesDiv.appendChild(botMessage);
+messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  sendBtn.onclick = sendMessage;
+  input.addEventListener("keypress", (e) => e.key === "Enter" && sendMessage());
+});
+</script>
