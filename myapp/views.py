@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from django.contrib.auth import authenticate, login, get_user_model, logout
 from django.contrib.auth.decorators import login_required
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -759,39 +760,81 @@ def get_employee_context(user):
     team_leaves = LeaveRequest.objects.filter(user__team=user.team).values()
     return list(team_leaves)
 
-
-def get_manager_apply_leave_context(user):
-    team_members = user.projectmember_set.values_list('member', flat=True)
-    team_leaves = LeaveRequest.objects.filter(user__in=team_members).values()
-    return list(team_leaves)
-
-
 def get_manager_reports_context(user):
-    direct = CustomUser.objects.filter(manager=user)
-    project = CustomUser.objects.filter(projectmember__project__lead=user)
-    all_related = direct.union(project)
-    leaves = LeaveRequest.objects.filter(user__in=all_related).values()
+    direct_ids = CustomUser.objects.filter(manager=user).values_list('id', flat=True)
+    project_ids = CustomUser.objects.filter(projectmember__project__lead=user).values_list('id', flat=True)
+    all_related_ids = list(direct_ids) + list(project_ids)  # just combine IDs
+    leaves = LeaveRequest.objects.filter(user__id__in=all_related_ids).values()
     return list(leaves)
 
 
 def get_admin_reports_context(user):
-    all_leaves = LeaveRequest.objects.all().values()
-    return list(all_leaves)
+    users = list(CustomUser.objects.all().values(
+        'id', 'username', 'role', 'manager_id', 'designation'
+    ))
+
+    # Get all leave types
+    leave_types = list(LeaveType.objects.all().values('id', 'name', 'yearly_limit'))
+
+    # Get all leave requests
+    leave_requests = list(LeaveRequest.objects.all().values(
+        'id', 'user_id', 'leave_type_id', 'start_date', 'end_date',
+        'reason', 'status', 'applied_at', 'leads_notified',
+        'review_reason', 'reviewed_by_id'
+    ))
+
+    # Get leave balances
+    leave_balances = list(LeaveBalance.objects.all().values(
+        'id', 'user_id', 'leave_type_id', 'total', 'used', 'remaining'
+    ))
+
+    # Get projects
+    projects = list(Project.objects.all().values(
+        'id', 'name', 'description', 'status', 'lead_id'
+    ))
+
+    # Get project members
+    project_members = list(ProjectMember.objects.all().values(
+        'id', 'user_id', 'project_id', 'role_in_project', 'joined_at'
+    ))
+
+    # Combine into one context dictionary
+    context = {
+        "users": users,
+        "leave_types": leave_types,
+        "leave_requests": leave_requests,
+        "leave_balances": leave_balances,
+        "projects": projects,
+        "project_members": project_members,
+    }
+
+    return context
 
 
 @login_required
 def chat_bot(request):
-    role = request.user.role
-    message = request.POST.get("message")
+    if request.method == "POST":
+        # Parse JSON from request body
+        data = json.loads(request.body)
+        message = data.get("message")  # now this will have the input
+        role = data.get("role")
 
-    if role == "employee":
-        context = get_employee_context(request.user)
-    elif role == "manager" and request.path == "/manager/apply-leave/":
-        context = get_manager_apply_leave_context(request.user)
-    elif role == "manager" and request.path == "/manager/reports/":
-        context = get_manager_reports_context(request.user)
-    else:  # admin
-        context = get_admin_reports_context(request.user)
 
-    ai_response = chat_with_ai(message, context)
-    return JsonResponse({"response": ai_response})
+        # Get context based on role
+        if role == "employee":
+            context = get_employee_context(request.user)
+        elif role == "manager":
+            context = get_manager_reports_context(request.user)
+        elif role== "hr":
+            context=get_admin_reports_context(request.user)
+        else:
+            context={}
+
+        # Convert context to JSON string
+        context_json = json.dumps(context, cls=DjangoJSONEncoder, ensure_ascii=False, indent=2)
+
+        # Get AI response
+        ai_response = chat_with_ai(message, context_json)
+
+        return JsonResponse({"response": ai_response})
+    return None

@@ -1,6 +1,6 @@
 #utils.py
 from .models import LeaveBalance, LeaveRequest
-
+import json
 def calculate_leave_balance(user, leave_type):
     """
     Returns a dictionary with total, used, and remaining leave balance
@@ -154,18 +154,19 @@ Example output:
 
 
 def chat_with_ai(prompt, context_data):
+    context_json = json.dumps(context_data, indent=2)
     full_prompt = f"""
-    You are an HR assistant AI. 
-    You have access only to the following leave data:
+    You are an HR assistant AI.
+    Below is JSON data of employee leave requests:
 
-    {context_data}
+    {context_json}
 
-    Instructions:
-    - If the user's question relates to the data above, answer using that information.
-    - Keep your reply natural, like a human would speak.
-    - Do not use bullet points, lists, or tables.
-    - Limit your reply to 20 lines.
-    - If the user's question is unrelated to the above data, reply as a friendly AI, conversationally.
+    TASK:
+    - Analyze this JSON to answer the user's question directly.
+    - If the question is about reasons, status, dates, etc., extract and reply naturally.
+    - If the question is unrelated, respond normally.
+    - Do not give generic intros.
+    - Give me the information in a clear, well-structured, readable format. Use headings, lists, and proper spacing so it’s easy to read.
 
     User's question:
     {prompt}
@@ -173,9 +174,7 @@ def chat_with_ai(prompt, context_data):
     try:
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(full_prompt)
-
-        ai_text=response.text
-        print(context_data)
+        ai_text = response.text
         return ai_text.strip() if ai_text else "No AI suggestions available."
     except Exception as e:
         return f"Error generating AI suggestions: {e}"
