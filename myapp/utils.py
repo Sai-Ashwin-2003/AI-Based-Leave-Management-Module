@@ -1,6 +1,12 @@
 #utils.py
 from .models import LeaveBalance, LeaveRequest
 import json
+import requests
+from datetime import datetime, timedelta
+from myapp.models import ComplianceRecord
+from django.db import transaction
+import os
+
 def calculate_leave_balance(user, leave_type):
     """
     Returns a dictionary with total, used, and remaining leave balance
@@ -50,12 +56,6 @@ def get_project_manager(user, project):
     return project.lead
 
 
-import requests
-from datetime import datetime, timedelta
-from myapp.models import ComplianceRecord
-from django.db import transaction
-import os
-
 def fetch_and_store_compliance(start_date: str, end_date: str):
     key = os.environ.get("SPARK_FINCH_KEY")
     url = "https://aimanager.techjays.com/app/api/non-compliance/users/jaysone"
@@ -94,7 +94,6 @@ def fetch_and_store_compliance(start_date: str, end_date: str):
 
 
 import google.generativeai as genai
-from django.conf import settings
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def get_leave_decision_with_ai(
@@ -156,8 +155,8 @@ Example output:
 def chat_with_ai(prompt, context_data):
     context_json = json.dumps(context_data, indent=2)
     full_prompt = f"""
-    You are an HR assistant AI.
-    Below is JSON data of employee leave requests:
+    "You are an intelligent assistant AI. Always format your responses using clean, semantic HTML structure with appropriate tags such as <p>, <h3>, <ul>, and <li>. Apply the provided CSS classes consistently for elegant styling and readability. Do not include <html> or <body> tags in your output. Ensure the tone remains professional, clear, and visually appealing."
+    Below is JSON data of employee data:
 
     {context_json}
 
@@ -166,8 +165,7 @@ def chat_with_ai(prompt, context_data):
     - If the question is about reasons, status, dates, etc., extract and reply naturally.
     - If the question is unrelated, respond normally.
     - Do not give generic intros.
-    - Give me the information in a clear, well-structured, readable format. Use headings, lists, and proper spacing so it’s easy to read.
-
+    
     User's question:
     {prompt}
     """

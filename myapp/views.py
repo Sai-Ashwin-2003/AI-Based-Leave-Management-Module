@@ -757,15 +757,121 @@ def spark_finch_users(request):
     })
 
 def get_employee_context(user):
-    team_leaves = LeaveRequest.objects.filter(user__team=user.team).values()
-    return list(team_leaves)
+    # 1️⃣ Find all projects that the current user is a member of
+    project_ids = ProjectMember.objects.filter(user=user).values_list('project_id', flat=True)
+
+    # 2️⃣ Get the leads (manager IDs) of those projects
+    project_leads = Project.objects.filter(id__in=project_ids).values_list('lead_id', flat=True)
+
+    # 3️⃣ Get all projects led by those leads
+    project_lead_ids = Project.objects.filter(lead__in=project_leads).values_list('id', flat=True)
+
+    # 4️⃣ Get all members of those projects
+    project_members = ProjectMember.objects.filter(
+        project_id__in=project_lead_ids
+    ).exclude(user=user).values_list('user_id', flat=True)
+
+    users = list(CustomUser.objects.filter(id__in=project_members).values(
+        'id', 'username', 'role', 'designation'
+    ).distinct())
+
+    # 5️⃣ Get leave requests of those project members
+    leave_requests = list(LeaveRequest.objects.filter(
+        user__id__in=project_members
+    ).values(
+        'id', 'user_id', 'leave_type_id', 'start_date', 'end_date',
+        'reason', 'status', 'applied_at'
+    ).distinct())
+
+    current_user_projects = list(Project.objects.filter(id__in=project_ids).values(
+        'id', 'name', 'description', 'status'
+    ))
+
+    current_user = list(CustomUser.objects.filter(id=user.id).values('id', 'username', 'role', 'designation'))
+
+    context={
+        "current_user" : current_user,
+        "current_user_projects" : current_user_projects,
+        "project_members" : users,
+        "leave_requests" : leave_requests
+    }
+    return context
+
+from django.db.models import Q
 
 def get_manager_reports_context(user):
+    # 1️⃣ Get direct employees (manager=user)
     direct_ids = CustomUser.objects.filter(manager=user).values_list('id', flat=True)
-    project_ids = CustomUser.objects.filter(projectmember__project__lead=user).values_list('id', flat=True)
-    all_related_ids = list(direct_ids) + list(project_ids)  # just combine IDs
-    leaves = LeaveRequest.objects.filter(user__id__in=all_related_ids).values()
-    return list(leaves)
+    project_members = ProjectMember.objects.filter(project__lead=user).values_list('user_id',flat=True)
+
+    # 2️⃣ Get user details for direct employees only
+    users = list(CustomUser.objects.filter(
+        Q(id__in=direct_ids) | Q(id__in=project_members)
+    ).values(
+        'id', 'username', 'role', 'manager_id', 'designation'
+    ).distinct())
+
+    # 4️⃣ Leave requests — only for direct employees
+    leave_requests = list(LeaveRequest.objects.filter( Q(user__id__in=direct_ids) | Q(user__id__in=project_members)).values(
+        'id', 'user_id', 'leave_type_id', 'start_date', 'end_date',
+        'reason', 'status', 'applied_at', 'leads_notified',
+        'review_reason', 'reviewed_by_id'
+    ).distinct())
+
+    # 5️⃣ Leave balances — only for direct employees
+    leave_balances = list(LeaveBalance.objects.filter(
+        Q(user__id__in=direct_ids) | Q(user__id__in=project_members)
+    ).values('id', 'user_id', 'leave_type_id', 'total', 'used', 'remaining').distinct())
+
+
+    # 6️⃣ Projects — only those led by this manager (optional)
+    projects = list(Project.objects.filter(lead=user).values(
+        'id', 'name', 'description', 'status', 'lead_id'
+    ))
+
+    project_members = list(ProjectMember.objects.filter(project__lead=user).values('id','user_id','project_id','role_in_project','joined_at'))
+
+    # 1️⃣ Find all projects that the current user is a member of
+    project_ids = ProjectMember.objects.filter(user=user).values_list('project_id', flat=True)
+
+    # 2️⃣ Get the leads (manager IDs) of those projects
+    project_leads = Project.objects.filter(id__in=project_ids).values_list('lead_id', flat=True)
+
+    # 3️⃣ Get all projects led by those leads
+    project_lead_ids = Project.objects.filter(lead__in=project_leads).values_list('id', flat=True)
+
+    # 4️⃣ Get all members of those projects
+    co_working_members = ProjectMember.objects.filter(
+        project_id__in=project_lead_ids
+    ).exclude(user=user).values_list('user_id', flat=True)
+
+    co_working_users = list(CustomUser.objects.filter(id__in=co_working_members).values(
+        'id', 'username', 'role', 'designation'
+    ).distinct())
+
+    # 5️⃣ Get leave requests of those project members
+    co_working_leave_requests = list(LeaveRequest.objects.filter(
+        user__id__in=co_working_members
+    ).values(
+        'id', 'user_id', 'leave_type_id', 'start_date', 'end_date',
+        'reason', 'status', 'applied_at'
+    ).distinct())
+
+    current_user=list(CustomUser.objects.filter(id=user.id).values('id', 'username', 'role', 'designation'))
+
+    # 🔟 Combine into context dictionary
+    context = {
+        "current_user" : current_user,
+        "users": users,
+        "leave_requests": leave_requests,
+        "leave_balances": leave_balances,
+        "projects": projects,
+        "project_members": project_members,
+        "co-workers" : co_working_users,
+        "co-workers_leave_requests" : co_working_leave_requests
+    }
+
+    return context
 
 
 def get_admin_reports_context(user):
@@ -773,8 +879,6 @@ def get_admin_reports_context(user):
         'id', 'username', 'role', 'manager_id', 'designation'
     ))
 
-    # Get all leave types
-    leave_types = list(LeaveType.objects.all().values('id', 'name', 'yearly_limit'))
 
     # Get all leave requests
     leave_requests = list(LeaveRequest.objects.all().values(
@@ -798,10 +902,12 @@ def get_admin_reports_context(user):
         'id', 'user_id', 'project_id', 'role_in_project', 'joined_at'
     ))
 
+    current_user = list(CustomUser.objects.filter(id=user.id).values('id', 'username', 'role', 'designation'))
+
     # Combine into one context dictionary
     context = {
+        "current_user" : current_user,
         "users": users,
-        "leave_types": leave_types,
         "leave_requests": leave_requests,
         "leave_balances": leave_balances,
         "projects": projects,
@@ -832,9 +938,6 @@ def chat_bot(request):
 
         # Convert context to JSON string
         context_json = json.dumps(context, cls=DjangoJSONEncoder, ensure_ascii=False, indent=2)
-
-        # Get AI response
-        ai_response = chat_with_ai(message, context_json)
-
-        return JsonResponse({"response": ai_response})
+        ai_text = chat_with_ai(message, context_json)
+        return JsonResponse({"response": ai_text})
     return None
