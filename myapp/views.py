@@ -11,7 +11,8 @@ from django.views.decorators.cache import never_cache
 import json
 import requests
 from datetime import date, timedelta, datetime
-from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification, UserData
+from .models import LeaveType, LeaveRequest, LeaveBalance, CustomUser, Project, ProjectMember, Notification, UserData, \
+    ChatHistory
 from .utils import calculate_leave_balance, chat_with_ai
 from dotenv import load_dotenv
 import os
@@ -786,12 +787,20 @@ def get_employee_context(user):
     current_user_projects = list(Project.objects.filter(id__in=project_ids).values(
         'id', 'name', 'description', 'status'
     ))
-
+    self_leave_balance = list(LeaveBalance.objects.filter(user=user).values(
+        'leave_type__name', 'total', 'used', 'remaining'
+    ))
     current_user = list(CustomUser.objects.filter(id=user.id).values('id', 'username', 'role', 'designation'))
+    self_leave_requests = list(LeaveRequest.objects.filter(user=user).values(
+        'id', 'leave_type_id', 'start_date', 'end_date',
+        'reason', 'status', 'applied_at',  'review_reason', 'reviewed_by'
+    ))
 
     context={
         "current_user" : current_user,
         "current_user_projects" : current_user_projects,
+        "leave_balance" : self_leave_balance,
+        "self_leave_request" : self_leave_requests,
         "project_members" : users,
         "leave_requests" : leave_requests
     }
@@ -858,10 +867,19 @@ def get_manager_reports_context(user):
     ).distinct())
 
     current_user=list(CustomUser.objects.filter(id=user.id).values('id', 'username', 'role', 'designation'))
+    self_leave_balance = list(LeaveBalance.objects.filter(user=user).values(
+        'leave_type__name', 'total', 'used', 'remaining'
+    ))
+    self_leave_requests = list(LeaveRequest.objects.filter(user=user).values(
+        'id', 'leave_type_id', 'start_date', 'end_date',
+        'reason', 'status', 'applied_at',  'review_reason', 'reviewed_by'
+    ))
 
     # 🔟 Combine into context dictionary
     context = {
         "current_user" : current_user,
+        "self_leave_balance" : self_leave_balance,
+        "self_leave_requests" : self_leave_requests,
         "users": users,
         "leave_requests": leave_requests,
         "leave_balances": leave_balances,
@@ -936,8 +954,30 @@ def chat_bot(request):
         else:
             context={}
 
+        previous_chats = ChatHistory.objects.filter(user=request.user).order_by('-timestamp')[:5]
+        chat_history = [
+            {"role": "user", "content": chat.prompt}
+            for chat in reversed(previous_chats)
+        ] + [
+            {"role": "assistant", "content": chat.response}
+            for chat in reversed(previous_chats)
+        ]
+
+        # Merge with current context
+        context_data = {
+            "role_context": context,
+            "chat_history": chat_history,
+        }
+
         # Convert context to JSON string
-        context_json = json.dumps(context, cls=DjangoJSONEncoder, ensure_ascii=False, indent=2)
+        context_json = json.dumps(context_data, cls=DjangoJSONEncoder, ensure_ascii=False, indent=2)
         ai_text = chat_with_ai(message, context_json)
+
+        ChatHistory.objects.create(
+            user=request.user,
+            prompt=message,
+            response=ai_text
+        )
+
         return JsonResponse({"response": ai_text})
     return None
